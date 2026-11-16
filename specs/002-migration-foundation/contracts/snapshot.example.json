@@ -1,0 +1,349 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_id": "sha256:9f2c4e7a6b8d3f1e5c7a9b2d4e6f8a1c3b5d7e9f1a2b4c6d8e0f2a4b6c8d0e2f",
+  "generated_at": "2026-11-16T12:00:00Z",
+  "app_version": "0.1.0",
+  "config_version": "1.0.0",
+  "config_hash": "sha256:a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef01",
+  "data_version": "sha256:1a2b3c4d5e6f7890123456789abcdef0123456789abcdef0123456789abcdef01",
+  "instrument": {
+    "symbol": "BOOM1000",
+    "display_name": "Boom 1000",
+    "direction": "up",
+    "enabled": true,
+    "history_days": {
+      "1min": 30,
+      "5min": 90,
+      "15min": 180,
+      "1h": 365,
+      "4h": 730,
+      "1d": 1825
+    },
+    "tick_history_count": 5000,
+    "color": "#00B464",
+    "notes": "Índice sintético alcista, spikes hacia arriba"
+  },
+  "source": "deriv",
+  "config": {
+    "version": "1.0.0",
+    "gates": {
+      "candle_events_min_bars": 50,
+      "tick_events_min_ticks": 300,
+      "zone_min_evaluated": 10,
+      "zone_min_count": 5,
+      "evt_min_excess": 30,
+      "garch_min_obs": 200,
+      "regime_min_obs": 500,
+      "survival_min_events": 20,
+      "acf_min_obs": 100,
+      "conditional_min_events": 30,
+      "wf_min_folds": 3,
+      "wf_min_days": {
+        "1min": 30,
+        "5min": 60,
+        "15min": 90,
+        "1h": 180,
+        "4h": 365,
+        "1d": 730
+      }
+    },
+    "analysis": {
+      "candle_event_quantile": 0.99,
+      "event_lookback_bars": 200,
+      "min_move_pct": 0.0,
+      "tick_event_quantile": 0.999,
+      "tick_event_lookback": 2000,
+      "zone_tolerance_atr": 0.5,
+      "pivot_window": 3,
+      "min_zone_touches": 3,
+      "touch_separation_bars": 3,
+      "response_horizon_bars": 10,
+      "favourable_atr": 1.0,
+      "adverse_atr": 0.75,
+      "fdr_q": 0.1,
+      "evt_threshold_quantile": 0.95,
+      "garch_max_p": 1,
+      "garch_max_q": 1,
+      "regime_method": "markov_switching"
+    },
+    "runtime": {
+      "rate_limit_per_minute": 150,
+      "cache_limit_mb": 1024,
+      "refresh_seconds": 60,
+      "stale_seconds": 900
+    }
+  },
+  "timeframes": {
+    "5min": {
+      "timeframe": "5min",
+      "status": "ready",
+      "generated_at": "2026-11-16T12:00:00Z",
+      "data_range": {
+        "requested_start_epoch": 1752710400,
+        "requested_end_epoch": 1763208000,
+        "start_epoch": 1752710400,
+        "end_epoch": 1763207700
+      },
+      "bars": 25920,
+      "candles_ref": "memory://BOOM1000/5min",
+      "quality": {
+        "status": "ok",
+        "expected_bars": 25920,
+        "received_bars": 25920,
+        "coverage_pct": 100.0,
+        "missing_bars": 0,
+        "gaps_count": 0,
+        "duplicates_removed": 0,
+        "invalid_ohlc": 0,
+        "first_epoch": 1752710400,
+        "last_epoch": 1763207700,
+        "stale_seconds": 180,
+        "dropped_ticks": 0,
+        "errors": [],
+        "notes": ["Cobertura completa, sin huecos ni duplicados"]
+      },
+      "events": {
+        "candle": {
+          "status": "ready",
+          "n_events": 248,
+          "threshold_quantile": 0.99,
+          "lookback": 200,
+          "warmup": 50,
+          "events": [],
+          "threshold_summary": { "min": 12.1, "median": 24.7, "max": 61.3 },
+          "note": "Candidatos de spike por velas (excursión desde cierre previo)"
+        },
+        "tick": {
+          "status": "ready",
+          "n_events": 37,
+          "threshold_quantile": 0.999,
+          "lookback": 2000,
+          "warmup": 300,
+          "events": [],
+          "threshold_summary": { "min": 3.2, "median": 7.8, "max": 19.4 },
+          "note": "Candidatos de spike por ticks (retorno direccional); sesión actual"
+        }
+      },
+      "zones": [
+        {
+          "zone_id": "sha256:1a2b3c4d5e6f7890123456789abcdef0123456789abcdef0123456789abcdef01",
+          "symbol": "BOOM1000",
+          "timeframe": "5min",
+          "zone_type": "support",
+          "center": 1234.56,
+          "lower": 1234.20,
+          "upper": 1234.92,
+          "half_width": 0.36,
+          "touch_bars": 47,
+          "episodes": 12,
+          "evaluated_touches": 10,
+          "reactions": 7,
+          "failures": 3,
+          "ambiguous_touches": 1,
+          "pending_touches": 1,
+          "reaction_rate": 0.7,
+          "ci_lower": 0.3475,
+          "ci_upper": 0.9333,
+          "p_null": 0.4286,
+          "p_value_raw": 0.0312,
+          "p_value_adj": 0.0624,
+          "reject": false,
+          "median_favourable_atr": 1.85,
+          "favourable_ci": [1.2, 2.7],
+          "median_adverse_atr": 0.92,
+          "adverse_ci": [0.4, 1.6],
+          "event_count_in_zone": 3,
+          "last_touch_epoch": 1763207400,
+          "available_from_epoch": 1752711000,
+          "stage": "in_sample",
+          "status": "ready",
+          "sensitivity": {
+            "rate_ambiguous_as_failure_pct": 54.5,
+            "rate_pending_as_failure_pct": 63.6,
+            "note": "Excluidos del denominador principal"
+          },
+          "reason": null
+        }
+      ],
+      "evt": {
+        "status": "ready",
+        "threshold": 0.0045,
+        "threshold_quantile": 0.95,
+        "n_excesses": 127,
+        "xi": 0.18,
+        "sigma": 0.0021,
+        "xi_se": 0.045,
+        "sigma_se": 0.0003,
+        "log_likelihood": -142.3,
+        "converged": true,
+        "ks_stat": 0.062,
+        "ks_p": 0.28,
+        "return_levels": {
+          "10": 0.0068,
+          "50": 0.0112,
+          "100": 0.0145,
+          "250": 0.0198
+        },
+        "mean_excess_plot": {
+          "thresholds": [0.003, 0.0035, 0.004, 0.0045, 0.005],
+          "mean_excess": [0.0018, 0.0021, 0.0024, 0.0028, 0.0032],
+          "n_excess": [450, 320, 210, 127, 85]
+        },
+        "message": null
+      },
+      "volatility": {
+        "status": "ready",
+        "model": "GARCH(1,1)",
+        "distribution": "normal",
+        "n_obs": 25920,
+        "params": {
+          "omega": 1.2e-7,
+          "alpha1": 0.085,
+          "beta1": 0.905
+        },
+        "p_values": {
+          "omega": 0.001,
+          "alpha1": 0.000,
+          "beta1": 0.000
+        },
+        "persistence": 0.99,
+        "aic": -8.45,
+        "bic": -8.42,
+        "log_likelihood": 109500,
+        "forecast": [
+          { "step": 1, "mean": 0.0, "variance": 0.00042, "sigma": 0.0205, "ci_lower": 0.015, "ci_upper": 0.026 },
+          { "step": 2, "mean": 0.0, "variance": 0.00043, "sigma": 0.0207, "ci_lower": 0.015, "ci_upper": 0.027 },
+          { "step": 3, "mean": 0.0, "variance": 0.00044, "sigma": 0.0210, "ci_lower": 0.015, "ci_upper": 0.028 },
+          { "step": 4, "mean": 0.0, "variance": 0.00045, "sigma": 0.0212, "ci_lower": 0.015, "ci_upper": 0.028 },
+          { "step": 5, "mean": 0.0, "variance": 0.00046, "sigma": 0.0214, "ci_lower": 0.015, "ci_upper": 0.029 },
+          { "step": 6, "mean": 0.0, "variance": 0.00047, "sigma": 0.0217, "ci_lower": 0.015, "ci_upper": 0.029 },
+          { "step": 7, "mean": 0.0, "variance": 0.00048, "sigma": 0.0219, "ci_lower": 0.015, "ci_upper": 0.030 },
+          { "step": 8, "mean": 0.0, "variance": 0.00049, "sigma": 0.0221, "ci_lower": 0.015, "ci_upper": 0.030 },
+          { "step": 9, "mean": 0.0, "variance": 0.00050, "sigma": 0.0224, "ci_lower": 0.015, "ci_upper": 0.031 },
+          { "step": 10, "mean": 0.0, "variance": 0.00051, "sigma": 0.0226, "ci_lower": 0.015, "ci_upper": 0.031 }
+        ],
+        "diagnostics": {
+          "ljung_box": { "lag_10_p": 0.45, "lag_20_p": 0.38 },
+          "arch_lm": { "lag_10_p": 0.62, "lag_20_p": 0.58 }
+        },
+        "converged": true,
+        "message": null
+      },
+      "regimes": {
+        "status": "ready",
+        "method": "markov_switching",
+        "n_regimes": 2,
+        "n_obs": 25920,
+        "high_vol_prob_current": 0.12,
+        "series": [
+          { "epoch": 1752710400, "prob_high": 0.08 },
+          { "epoch": 1752710700, "prob_high": 0.07 },
+          { "epoch": 1752711000, "prob_high": 0.09 }
+        ],
+        "segments": [
+          { "start_epoch": 1752710400, "end_epoch": 1755302400, "regime": 0, "mean_variance": 0.00038 },
+          { "start_epoch": 1755302400, "end_epoch": 1755388800, "regime": 1, "mean_variance": 0.0012 },
+          { "start_epoch": 1755388800, "end_epoch": 1763208000, "regime": 0, "mean_variance": 0.00041 }
+        ],
+        "last_switch_epoch": 1755388800,
+        "converged": true,
+        "message": null
+      },
+      "survival": {
+        "status": "ready",
+        "mode": "event_index",
+        "n_events": 248,
+        "n_censored": 1,
+        "median": 104.5,
+        "median_ci": [89.2, 124.8],
+        "curve": [
+          { "time": 10, "survival": 0.95, "ci_lower": 0.92, "ci_upper": 0.97, "at_risk": 248 },
+          { "time": 50, "survival": 0.72, "ci_lower": 0.66, "ci_upper": 0.78, "at_risk": 178 },
+          { "time": 100, "survival": 0.48, "ci_lower": 0.41, "ci_upper": 0.55, "at_risk": 119 },
+          { "time": 200, "survival": 0.21, "ci_lower": 0.15, "ci_upper": 0.28, "at_risk": 52 },
+          { "time": 500, "survival": 0.03, "ci_lower": 0.01, "ci_upper": 0.07, "at_risk": 7 }
+        ],
+        "message": null
+      },
+      "autocorrelation": {
+        "n_obs": 25920,
+        "max_lag": 50,
+        "acf_returns": [1.0, 0.02, -0.01, 0.005, -0.008, 0.003, -0.002, 0.001, -0.004, 0.002, -0.001],
+        "acf_squared": [1.0, 0.35, 0.28, 0.22, 0.18, 0.15, 0.12, 0.10, 0.08, 0.07, 0.06],
+        "conf_band": 0.0124,
+        "ljung_box": { "lag_10_p": 0.45, "lag_20_p": 0.38 },
+        "message": null
+      },
+      "diagnostics": {
+        "jarque_bera": { "stat": 1245.8, "p": 0.0 },
+        "arch_lm": { "stat": 28.4, "p": 0.001, "lags": 10 },
+        "adf": { "stat": -42.3, "p": 0.0, "lags": 12, "critical_values": { "1%": -3.43, "5%": -2.86, "10%": -2.57 } },
+        "message": "Retornos no normales (cola pesada), heterocedasticidad presente, serie estacionaria"
+      },
+      "conditional": {
+        "status": "ready",
+        "mode": "ticks",
+        "horizon": 100,
+        "bin_size": 100,
+        "bins": [
+          { "bin_start": 0, "bin_end": 100, "n_events": 8, "n_trials": 45, "probability": 0.178, "ci_lower": 0.08, "ci_upper": 0.32 },
+          { "bin_start": 100, "bin_end": 200, "n_events": 12, "n_trials": 67, "probability": 0.179, "ci_lower": 0.10, "ci_upper": 0.28 },
+          { "bin_start": 200, "bin_end": 300, "n_events": 15, "n_trials": 89, "probability": 0.169, "ci_lower": 0.10, "ci_upper": 0.26 },
+          { "bin_start": 300, "bin_end": 400, "n_events": 11, "n_trials": 78, "probability": 0.141, "ci_lower": 0.07, "ci_upper": 0.24 }
+        ],
+        "note": "Descriptivo, in-sample"
+      },
+      "walkforward": {
+        "status": "ready",
+        "method": "anchored",
+        "config": { "train_bars": 17280, "test_bars": 4320, "step_bars": 2160, "min_folds": 3 },
+        "folds": [
+          {
+            "fold_id": "BOOM1000-5min-wf01",
+            "train_start_epoch": 1752710400,
+            "train_end_epoch": 1754438400,
+            "test_start_epoch": 1754438400,
+            "test_end_epoch": 1754870400,
+            "bars_train": 17280,
+            "bars_test": 4320,
+            "zones_evaluated": 8,
+            "reactions": 5,
+            "evaluated_touches": 12,
+            "reaction_rate": 0.417,
+            "ci_lower": 0.152,
+            "ci_upper": 0.723,
+            "p_value_raw": 0.18,
+            "p_value_adj": 0.27,
+            "stage": "oos"
+          }
+        ],
+        "aggregate": {
+          "folds": 3,
+          "evaluated": 36,
+          "reactions": 16,
+          "rate": 0.444,
+          "ci": { "lower": 0.28, "upper": 0.62 },
+          "sign_test_p": 0.34,
+          "independent": false
+        },
+        "warning": "Folds no independientes (zonas repetidas, solapamiento temporal). Sign test es descriptivo.",
+        "recommendation": "Para validación robusta usar 1h o 4h con más historia"
+      },
+      "features": {
+        "evt.gpd": { "id": "evt.gpd", "name_es": "Ajuste EVT/GPD", "category": "evt", "status": "ready", "min_sample": 30, "sample_size": 127, "reason": null, "ui_path": "/i/BOOM1000/distribution", "stage": "in_sample" },
+        "volatility.garch": { "id": "volatility.garch", "name_es": "GARCH(1,1)", "category": "volatility", "status": "ready", "min_sample": 200, "sample_size": 25920, "reason": null, "ui_path": "/i/BOOM1000/volatility", "stage": "in_sample" },
+        "volatility.regimes": { "id": "volatility.regimes", "name_es": "Regímenes de Volatilidad", "category": "volatility", "status": "ready", "min_sample": 500, "sample_size": 25920, "reason": null, "ui_path": "/i/BOOM1000/volatility", "stage": "in_sample" },
+        "zones.reaction": { "id": "zones.reaction", "name_es": "Zonas de Reacción", "category": "zones", "status": "ready", "min_sample": 10, "sample_size": 10, "reason": null, "ui_path": "/i/BOOM1000/realtime", "stage": "in_sample" },
+        "survival.kaplan_meier": { "id": "survival.kaplan_meier", "name_es": "Curva Kaplan-Meier", "category": "survival", "status": "ready", "min_sample": 20, "sample_size": 248, "reason": null, "ui_path": "/i/BOOM1000/survival", "stage": "in_sample" },
+        "diagnostics.residuals": { "id": "diagnostics.residuals", "name_es": "Diagnósticos Residuales", "category": "diagnostics", "status": "ready", "min_sample": 100, "sample_size": 25920, "reason": null, "ui_path": "/i/BOOM1000/diagnostics", "stage": "in_sample" },
+        "walkforward.validation": { "id": "walkforward.validation", "name_es": "Validación Walk-Forward", "category": "walkforward", "status": "ready", "min_sample": 3, "sample_size": 3, "reason": null, "ui_path": "/i/BOOM1000/diagnostics", "stage": "oos" }
+      },
+      "errors": []
+    }
+  },
+  "features": [],
+  "errors": [],
+  "overall_status": "partial",
+  "cache_bytes": 7340032,
+  "notes": ["5min listo; 1h pendiente; 1min, 15min, 4h, 1d no solicitados aún"]
+}

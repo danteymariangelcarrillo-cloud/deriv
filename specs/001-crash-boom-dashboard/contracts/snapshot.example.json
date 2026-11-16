@@ -1,0 +1,147 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_id": "6f1c2b7e-6e0e-5f0a-9d0e-2a4b8c1d3e5f",
+  "generated_at": "2026-11-15T12:00:00Z",
+  "app_version": "0.1.0",
+  "config_version": "1.0.0",
+  "config_hash": "sha256:9f2c1d3e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01",
+  "data_version": "memory:fixture-001",
+  "instrument": {
+    "symbol": "BOOM1000",
+    "display_name": "Boom 1000",
+    "direction": "up",
+    "enabled": true,
+    "history_days": {
+      "1min": 30,
+      "5min": 90,
+      "15min": 180,
+      "1h": 365,
+      "4h": 730,
+      "1d": 1825
+    },
+    "tick_history_count": 5000
+  },
+  "source": "fixture",
+  "config": {
+    "version": "1.0.0",
+    "gates": {
+      "candle_events_min_bars": 50,
+      "tick_events_min_ticks": 300,
+      "zone_min_evaluated": 10,
+      "zone_min_count": 5,
+      "evt_min_excess": 30,
+      "garch_min_obs": 200,
+      "regime_min_obs": 500,
+      "survival_min_events": 20,
+      "acf_min_obs": 100,
+      "conditional_min_events": 30,
+      "walkforward_min_folds": 3,
+      "walkforward_min_days_5min": 60,
+      "walkforward_min_days_15min": 90,
+      "walkforward_min_days_1h": 180,
+      "walkforward_min_days_4h": 365,
+      "walkforward_min_days_1d": 730
+    },
+    "analysis": {
+      "candle_event_quantile": 0.99,
+      "event_lookback_bars": 200,
+      "tick_event_quantile": 0.995,
+      "tick_event_lookback": 2000,
+      "zone_tolerance_atr": 0.5,
+      "pivot_window": 3,
+      "min_zone_touches": 3,
+      "touch_separation_bars": 3,
+      "response_horizon_bars": 10,
+      "favourable_atr": 1.0,
+      "adverse_atr": 0.75,
+      "fdr_q": 0.1,
+      "evt_threshold_quantile": 0.95,
+      "garch_max_p": 1,
+      "garch_max_q": 1,
+      "regime_method": "markov_switching"
+    },
+    "runtime": {
+      "rate_limit_per_minute": 150,
+      "cache_limit_mb": 400,
+      "refresh_seconds": 60,
+      "stale_seconds": 900
+    }
+  },
+  "timeframes": {
+    "5min": {
+      "timeframe": "5min",
+      "status": "insufficient",
+      "generated_at": "2026-11-15T12:00:00Z",
+      "data_range": {
+        "requested_start_epoch": 1752710400,
+        "requested_end_epoch": 1763208000,
+        "start_epoch": null,
+        "end_epoch": null
+      },
+      "bars": 0,
+      "candles_ref": "memory://BOOM1000/5min",
+      "quality": {
+        "status": "fail",
+        "expected_bars": 0,
+        "received_bars": 0,
+        "coverage_pct": 0,
+        "missing_bars": 0,
+        "gaps_count": 0,
+        "duplicates_removed": 0,
+        "invalid_ohlc": 0,
+        "first_epoch": null,
+        "last_epoch": null,
+        "stale_seconds": null,
+        "dropped_ticks": 0,
+        "errors": [],
+        "notes": ["Fixture sin velas para probar el estado insuficiente"]
+      },
+      "events": {
+        "candle": {
+          "status": "insufficient",
+          "n_events": 0,
+          "threshold_quantile": 0.99,
+          "lookback": 200,
+          "warmup": 0,
+          "events": [],
+          "threshold_summary": {
+            "min": null,
+            "median": null,
+            "max": null
+          },
+          "note": "Datos insuficientes para detectar candidatos por velas"
+        },
+        "tick": {
+          "status": "insufficient",
+          "n_events": 0,
+          "threshold_quantile": 0.995,
+          "lookback": 2000,
+          "warmup": 0,
+          "events": [],
+          "threshold_summary": {
+            "min": null,
+            "median": null,
+            "max": null
+          },
+          "note": "Warm-up de ticks insuficiente"
+        }
+      },
+      "zones": [],
+      "evt": null,
+      "volatility": null,
+      "regimes": null,
+      "survival": null,
+      "autocorrelation": null,
+      "diagnostics": null,
+      "conditional": null,
+      "walkforward": null,
+      "features": {},
+      "errors": []
+    }
+  },
+  "features": [],
+  "errors": [],
+  "overall_status": "partial",
+  "cache_bytes": 0,
+  "notes": ["Ejemplo de contrato; no es un snapshot de producción"]
+}

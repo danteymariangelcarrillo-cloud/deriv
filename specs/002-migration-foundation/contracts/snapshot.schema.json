@@ -1,0 +1,742 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quantlab.local/schemas/snapshot.schema.json",
+  "title": "InstrumentSnapshot",
+  "description": "Snapshot inmutable de un instrumento (Boom 1000 / Crash 500) con todas las temporalidades y análisis. Extiende spec padre 001-crash-boom-dashboard.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "generated_at",
+    "app_version",
+    "config_version",
+    "config_hash",
+    "data_version",
+    "instrument",
+    "source",
+    "config",
+    "timeframes",
+    "features",
+    "errors",
+    "overall_status",
+    "cache_bytes",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Versión del esquema. Cambiar solo si breaking changes."
+    },
+    "snapshot_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID5 determinista: symbol|generated_at|config_hash"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC ISO 8601 con Z"
+    },
+    "app_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-z0-9]+)?$",
+      "description": "Semver de la aplicación"
+    },
+    "config_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver de configuración"
+    },
+    "config_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 hex de config canónica (analyzer+model+gates+ram+version)"
+    },
+    "data_version": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "Hash de la serie de datos usada"
+    },
+    "instrument": {
+      "$ref": "#/$defs/Instrument"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "config": {
+      "$ref": "#/$defs/Config"
+    },
+    "timeframes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/TimeframeAnalysis"
+      },
+      "minProperties": 1,
+      "description": "Mapa Timeframe -> TimeframeAnalysis"
+    },
+    "features": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/FeatureStatus" },
+      "description": "Registro agregado de todos los análisis"
+    },
+    "errors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ErrorRecord" },
+      "description": "Errores a nivel de instrumento"
+    },
+    "overall_status": {
+      "$ref": "#/$defs/OverallStatus"
+    },
+    "cache_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Bytes usados en RAM por este instrumento"
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Advertencias globales legibles"
+    }
+  },
+  "$defs": {
+    "Instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["symbol", "display_name", "direction", "enabled", "history_days", "tick_history_count"],
+      "properties": {
+        "symbol": { "type": "string", "pattern": "^[A-Z0-9]{3,20}$" },
+        "display_name": { "type": "string" },
+        "direction": { "enum": ["up", "down"] },
+        "enabled": { "type": "boolean" },
+        "history_days": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1 },
+          "required": ["1min", "5min", "15min", "1h", "4h", "1d"],
+          "propertyNames": { "enum": ["1min", "5min", "15min", "1h", "4h", "1d"] }
+        },
+        "tick_history_count": { "type": "integer", "minimum": 2, "maximum": 5000 },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "notes": { "type": "string" }
+      }
+    },
+    "Source": {
+      "enum": ["deriv", "cache", "fixture"]
+    },
+    "Config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "gates", "analysis", "runtime"],
+      "properties": {
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "gates": { "$ref": "#/$defs/GateConfig" },
+        "analysis": { "$ref": "#/$defs/AnalysisConfig" },
+        "runtime": { "$ref": "#/$defs/RuntimeConfig" }
+      }
+    },
+    "GateConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candle_events_min_bars", "tick_events_min_ticks", "zone_min_evaluated",
+        "zone_min_count", "evt_min_excess", "garch_min_obs", "regime_min_obs",
+        "survival_min_events", "acf_min_obs", "conditional_min_events",
+        "wf_min_folds", "wf_min_days"
+      ],
+      "properties": {
+        "candle_events_min_bars": { "type": "integer", "minimum": 10 },
+        "tick_events_min_ticks": { "type": "integer", "minimum": 50 },
+        "zone_min_evaluated": { "type": "integer", "minimum": 1 },
+        "zone_min_count": { "type": "integer", "minimum": 1 },
+        "evt_min_excess": { "type": "integer", "minimum": 10 },
+        "garch_min_obs": { "type": "integer", "minimum": 50 },
+        "regime_min_obs": { "type": "integer", "minimum": 100 },
+        "survival_min_events": { "type": "integer", "minimum": 5 },
+        "acf_min_obs": { "type": "integer", "minimum": 20 },
+        "conditional_min_events": { "type": "integer", "minimum": 10 },
+        "wf_min_folds": { "type": "integer", "minimum": 1 },
+        "wf_min_days": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1 },
+          "required": ["1min", "5min", "15min", "1h", "4h", "1d"]
+        }
+      }
+    },
+    "AnalysisConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candle_event_quantile", "event_lookback_bars", "min_move_pct",
+        "tick_event_quantile", "tick_event_lookback", "zone_tolerance_atr",
+        "pivot_window", "min_zone_touches", "touch_separation_bars",
+        "response_horizon_bars", "favourable_atr", "adverse_atr",
+        "fdr_q", "evt_threshold_quantile", "garch_max_p", "garch_max_q",
+        "regime_method"
+      ],
+      "properties": {
+        "candle_event_quantile": { "type": "number", "exclusiveMinimum": 0.5, "exclusiveMaximum": 1.0 },
+        "event_lookback_bars": { "type": "integer", "minimum": 10 },
+        "min_move_pct": { "type": "number", "minimum": 0 },
+        "tick_event_quantile": { "type": "number", "exclusiveMinimum": 0.5, "exclusiveMaximum": 1.0 },
+        "tick_event_lookback": { "type": "integer", "minimum": 300 },
+        "zone_tolerance_atr": { "type": "number", "exclusiveMinimum": 0 },
+        "pivot_window": { "type": "integer", "minimum": 1 },
+        "min_zone_touches": { "type": "integer", "minimum": 1 },
+        "touch_separation_bars": { "type": "integer", "minimum": 1 },
+        "response_horizon_bars": { "type": "integer", "minimum": 1 },
+        "favourable_atr": { "type": "number", "exclusiveMinimum": 0 },
+        "adverse_atr": { "type": "number", "exclusiveMinimum": 0 },
+        "fdr_q": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+        "evt_threshold_quantile": { "type": "number", "exclusiveMinimum": 0.5, "exclusiveMaximum": 1.0 },
+        "garch_max_p": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "garch_max_q": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "regime_method": { "enum": ["markov_switching", "cusum"] }
+      }
+    },
+    "RuntimeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rate_limit_per_minute", "cache_limit_mb", "refresh_seconds", "stale_seconds"],
+      "properties": {
+        "rate_limit_per_minute": { "type": "integer", "minimum": 1 },
+        "cache_limit_mb": { "type": "integer", "minimum": 100 },
+        "refresh_seconds": { "type": "integer", "minimum": 1 },
+        "stale_seconds": { "type": "integer", "minimum": 60 }
+      }
+    },
+    "TimeframeAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeframe", "status", "generated_at", "data_range", "bars",
+        "candles_ref", "quality", "events", "zones", "evt", "volatility",
+        "regimes", "survival", "autocorrelation", "diagnostics",
+        "conditional", "walkforward", "features", "errors"
+      ],
+      "properties": {
+        "timeframe": { "enum": ["1min", "5min", "15min", "1h", "4h", "1d"] },
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "data_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requested_start_epoch", "requested_end_epoch", "start_epoch", "end_epoch"],
+          "properties": {
+            "requested_start_epoch": { "type": "integer" },
+            "requested_end_epoch": { "type": "integer" },
+            "start_epoch": { "type": "integer" },
+            "end_epoch": { "type": "integer" }
+          }
+        },
+        "bars": { "type": "integer", "minimum": 0 },
+        "candles_ref": { "type": "string" },
+        "quality": { "$ref": "#/$defs/DataQualityReport" },
+        "events": { "$ref": "#/$defs/EventSummary" },
+        "zones": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ReactionZone" }
+        },
+        "evt": { "anyOf": [{ "$ref": "#/$defs/EVTResult" }, { "type": "null" }] },
+        "volatility": { "anyOf": [{ "$ref": "#/$defs/GARCHResult" }, { "type": "null" }] },
+        "regimes": { "anyOf": [{ "$ref": "#/$defs/RegimeResult" }, { "type": "null" }] },
+        "survival": { "anyOf": [{ "$ref": "#/$defs/SurvivalResult" }, { "type": "null" }] },
+        "autocorrelation": { "anyOf": [{ "$ref": "#/$defs/ACFResult" }, { "type": "null" }] },
+        "diagnostics": { "anyOf": [{ "$ref": "#/$defs/DiagnosticsResult" }, { "type": "null" }] },
+        "conditional": { "anyOf": [{ "$ref": "#/$defs/ConditionalResult" }, { "type": "null" }] },
+        "walkforward": { "anyOf": [{ "$ref": "#/$defs/WalkForwardResult" }, { "type": "null" }] },
+        "features": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/FeatureStatus" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ErrorRecord" }
+        }
+      }
+    },
+    "AnalysisStatus": {
+      "enum": ["pending", "computing", "ready", "insufficient", "not_applicable", "error", "stale"]
+    },
+    "DataQualityReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "expected_bars", "received_bars", "coverage_pct", "missing_bars", "gaps_count", "duplicates_removed", "invalid_ohlc", "dropped_ticks", "errors", "notes"],
+      "properties": {
+        "status": { "$ref": "#/$defs/QualityStatus" },
+        "expected_bars": { "type": "integer", "minimum": 0 },
+        "received_bars": { "type": "integer", "minimum": 0 },
+        "coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "missing_bars": { "type": "integer", "minimum": 0 },
+        "gaps_count": { "type": "integer", "minimum": 0 },
+        "duplicates_removed": { "type": "integer", "minimum": 0 },
+        "invalid_ohlc": { "type": "integer", "minimum": 0 },
+        "first_epoch": { "type": ["integer", "null"] },
+        "last_epoch": { "type": ["integer", "null"] },
+        "stale_seconds": { "type": ["integer", "null"] },
+        "dropped_ticks": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "array", "items": { "$ref": "#/$defs/ErrorRecord" } },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "QualityStatus": { "enum": ["ok", "warn", "fail"] },
+    "EventSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candle", "tick"],
+      "properties": {
+        "candle": { "$ref": "#/$defs/EventSeries" },
+        "tick": { "$ref": "#/$defs/EventSeries" }
+      }
+    },
+    "EventSeries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "n_events", "threshold_quantile", "lookback", "warmup", "events", "threshold_summary", "note"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "n_events": { "type": "integer", "minimum": 0 },
+        "threshold_quantile": { "type": "number", "exclusiveMinimum": 0.5, "exclusiveMaximum": 1.0 },
+        "lookback": { "type": "integer", "minimum": 1 },
+        "warmup": { "type": "integer", "minimum": 1 },
+        "events": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": { "$ref": "#/$defs/EventCandidate" }
+        },
+        "threshold_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "median", "max"],
+          "properties": {
+            "min": { "type": ["number", "null"] },
+            "median": { "type": ["number", "null"] },
+            "max": { "type": ["number", "null"] }
+          }
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "EventCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "symbol", "timeframe", "kind", "direction", "event_epoch", "event_price", "magnitude_points", "magnitude_pct", "threshold_points", "threshold_basis", "lookback", "warmup_ok", "label", "computed_at"],
+      "properties": {
+        "event_id": { "type": "string", "format": "uuid" },
+        "symbol": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "kind": { "enum": ["candle", "tick"] },
+        "direction": { "enum": ["up", "down"] },
+        "event_epoch": { "type": "integer", "minimum": 0 },
+        "event_price": { "type": "number" },
+        "magnitude_points": { "type": "number", "minimum": 0 },
+        "magnitude_pct": { "type": "number", "minimum": 0 },
+        "threshold_points": { "type": "number" },
+        "threshold_basis": { "const": "rolling_quantile" },
+        "lookback": { "type": "integer", "minimum": 1 },
+        "warmup_ok": { "type": "boolean" },
+        "reversal_pct": { "type": ["number", "null"] },
+        "label": { "const": "candidato de spike" },
+        "computed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ReactionZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zone_id", "symbol", "timeframe", "zone_type", "center", "lower", "upper",
+        "half_width", "touch_bars", "episodes", "evaluated_touches", "reactions",
+        "failures", "ambiguous_touches", "pending_touches", "reaction_rate",
+        "ci_lower", "ci_upper", "p_null", "p_value_raw", "p_value_adj", "reject",
+        "median_favourable_atr", "favourable_ci", "median_adverse_atr", "adverse_ci",
+        "event_count_in_zone", "last_touch_epoch", "available_from_epoch",
+        "stage", "status", "sensitivity", "reason"
+      ],
+      "properties": {
+        "zone_id": { "type": "string", "format": "uuid" },
+        "symbol": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "zone_type": { "enum": ["support", "resistance"] },
+        "center": { "type": "number" },
+        "lower": { "type": "number" },
+        "upper": { "type": "number" },
+        "half_width": { "type": "number", "exclusiveMinimum": 0 },
+        "touch_bars": { "type": "integer", "minimum": 0 },
+        "episodes": { "type": "integer", "minimum": 0 },
+        "evaluated_touches": { "type": "integer", "minimum": 0 },
+        "reactions": { "type": "integer", "minimum": 0 },
+        "failures": { "type": "integer", "minimum": 0 },
+        "ambiguous_touches": { "type": "integer", "minimum": 0 },
+        "pending_touches": { "type": "integer", "minimum": 0 },
+        "reaction_rate": { "type": ["number", "null"] },
+        "ci_lower": { "type": ["number", "null"] },
+        "ci_upper": { "type": ["number", "null"] },
+        "p_null": { "type": ["number", "null"] },
+        "p_value_raw": { "type": ["number", "null"] },
+        "p_value_adj": { "type": ["number", "null"] },
+        "reject": { "type": "boolean" },
+        "median_favourable_atr": { "type": ["number", "null"] },
+        "favourable_ci": { "type": ["array", "null"], "items": { "type": "number" }, "maxItems": 2 },
+        "median_adverse_atr": { "type": ["number", "null"] },
+        "adverse_ci": { "type": ["array", "null"], "items": { "type": "number" }, "maxItems": 2 },
+        "event_count_in_zone": { "type": "integer", "minimum": 0 },
+        "last_touch_epoch": { "type": ["integer", "null"] },
+        "available_from_epoch": { "type": "integer", "minimum": 0 },
+        "stage": { "enum": ["in_sample", "oos"] },
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "sensitivity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rate_ambiguous_as_failure_pct", "rate_pending_as_failure_pct", "note"],
+          "properties": {
+            "rate_ambiguous_as_failure_pct": { "type": "number" },
+            "rate_pending_as_failure_pct": { "type": "number" },
+            "note": { "type": "string" }
+          }
+        },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "EVTResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "threshold", "threshold_quantile", "n_excesses", "xi", "sigma", "xi_se", "sigma_se", "log_likelihood", "converged", "ks_stat", "ks_p", "return_levels", "mean_excess_plot", "message"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "threshold": { "type": "number" },
+        "threshold_quantile": { "type": "number" },
+        "n_excesses": { "type": "integer", "minimum": 0 },
+        "xi": { "type": ["number", "null"] },
+        "sigma": { "type": ["number", "null"] },
+        "xi_se": { "type": ["number", "null"] },
+        "sigma_se": { "type": ["number", "null"] },
+        "log_likelihood": { "type": ["number", "null"] },
+        "converged": { "type": "boolean" },
+        "ks_stat": { "type": ["number", "null"] },
+        "ks_p": { "type": ["number", "null"] },
+        "return_levels": {
+          "type": "object",
+          "additionalProperties": { "type": "number" },
+          "required": ["10", "50", "100", "250"]
+        },
+        "mean_excess_plot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["thresholds", "mean_excess", "n_excess"],
+          "properties": {
+            "thresholds": { "type": "array", "items": { "type": "number" } },
+            "mean_excess": { "type": "array", "items": { "type": "number" } },
+            "n_excess": { "type": "array", "items": { "type": "integer" } }
+          }
+        },
+        "message": { "type": ["string", "null"] }
+      }
+    },
+    "GARCHResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "model", "distribution", "n_obs", "params", "p_values", "persistence", "aic", "bic", "log_likelihood", "forecast", "diagnostics", "converged", "message"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "model": { "const": "GARCH(1,1)" },
+        "distribution": { "enum": ["normal", "t"] },
+        "n_obs": { "type": "integer", "minimum": 0 },
+        "params": {
+          "type": "object",
+          "additionalProperties": { "type": "number" },
+          "required": ["omega", "alpha1", "beta1"]
+        },
+        "p_values": {
+          "type": "object",
+          "additionalProperties": { "type": "number" },
+          "required": ["omega", "alpha1", "beta1"]
+        },
+        "persistence": { "type": ["number", "null"] },
+        "aic": { "type": ["number", "null"] },
+        "bic": { "type": ["number", "null"] },
+        "log_likelihood": { "type": ["number", "null"] },
+        "forecast": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["step", "mean", "variance", "sigma", "ci_lower", "ci_upper"],
+            "properties": {
+              "step": { "type": "integer", "minimum": 1 },
+              "mean": { "type": "number" },
+              "variance": { "type": "number" },
+              "sigma": { "type": "number" },
+              "ci_lower": { "type": "number" },
+              "ci_upper": { "type": "number" }
+            }
+          }
+        },
+        "diagnostics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ljung_box", "arch_lm"],
+          "properties": {
+            "ljung_box": { "type": "object", "additionalProperties": { "type": "number" } },
+            "arch_lm": { "type": "object", "additionalProperties": { "type": "number" } }
+          }
+        },
+        "converged": { "type": "boolean" },
+        "message": { "type": ["string", "null"] }
+      }
+    },
+    "RegimeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "method", "n_regimes", "n_obs", "high_vol_prob_current", "series", "segments", "last_switch_epoch", "converged", "message"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "method": { "enum": ["markov_switching", "cusum"] },
+        "n_regimes": { "type": "integer", "const": 2 },
+        "n_obs": { "type": "integer", "minimum": 0 },
+        "high_vol_prob_current": { "type": ["number", "null"] },
+        "series": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["epoch", "prob_high"],
+            "properties": {
+              "epoch": { "type": "integer" },
+              "prob_high": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["start_epoch", "end_epoch", "regime", "mean_variance"],
+            "properties": {
+              "start_epoch": { "type": "integer" },
+              "end_epoch": { "type": "integer" },
+              "regime": { "type": "integer", "enum": [0, 1] },
+              "mean_variance": { "type": "number" }
+            }
+          }
+        },
+        "last_switch_epoch": { "type": ["integer", "null"] },
+        "converged": { "type": "boolean" },
+        "message": { "type": ["string", "null"] }
+      }
+    },
+    "SurvivalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "mode", "n_events", "n_censored", "median", "median_ci", "curve", "message"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "mode": { "enum": ["event_index", "time"] },
+        "n_events": { "type": "integer", "minimum": 0 },
+        "n_censored": { "type": "integer", "minimum": 0 },
+        "median": { "type": ["number", "null"] },
+        "median_ci": { "type": ["array", "null"], "items": { "type": "number" }, "maxItems": 2 },
+        "curve": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["time", "survival", "ci_lower", "ci_upper", "at_risk"],
+            "properties": {
+              "time": { "type": "number" },
+              "survival": { "type": "number", "minimum": 0, "maximum": 1 },
+              "ci_lower": { "type": ["number", "null"] },
+              "ci_upper": { "type": ["number", "null"] },
+              "at_risk": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "message": { "type": ["string", "null"] }
+      }
+    },
+    "ACFResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n_obs", "max_lag", "acf_returns", "acf_squared", "conf_band", "ljung_box", "message"],
+      "properties": {
+        "n_obs": { "type": "integer", "minimum": 100 },
+        "max_lag": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "acf_returns": { "type": "array", "items": { "type": "number" } },
+        "acf_squared": { "type": "array", "items": { "type": "number" } },
+        "conf_band": { "type": "number" },
+        "ljung_box": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lag_10_p", "lag_20_p"],
+          "properties": {
+            "lag_10_p": { "type": "number" },
+            "lag_20_p": { "type": "number" }
+          }
+        },
+        "message": { "type": ["string", "null"] }
+      }
+    },
+    "DiagnosticsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jarque_bera", "arch_lm", "adf", "message"],
+      "properties": {
+        "jarque_bera": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stat", "p"],
+          "properties": { "stat": { "type": "number" }, "p": { "type": "number" } }
+        },
+        "arch_lm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stat", "p", "lags"],
+          "properties": { "stat": { "type": "number" }, "p": { "type": "number" }, "lags": { "type": "integer" } }
+        },
+        "adf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stat", "p", "lags", "critical_values"],
+          "properties": {
+            "stat": { "type": "number" },
+            "p": { "type": "number" },
+            "lags": { "type": "integer" },
+            "critical_values": { "type": "object", "additionalProperties": { "type": "number" } }
+          }
+        },
+        "message": { "type": ["string", "null"] }
+      }
+    },
+    "ConditionalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "mode", "horizon", "bin_size", "bins", "note"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "mode": { "enum": ["bars", "ticks"] },
+        "horizon": { "type": "integer", "minimum": 1 },
+        "bin_size": { "type": "integer", "minimum": 1 },
+        "bins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["bin_start", "bin_end", "n_events", "n_trials", "probability", "ci_lower", "ci_upper"],
+            "properties": {
+              "bin_start": { "type": "integer" },
+              "bin_end": { "type": "integer" },
+              "n_events": { "type": "integer", "minimum": 0 },
+              "n_trials": { "type": "integer", "minimum": 0 },
+              "probability": { "type": "number", "minimum": 0, "maximum": 1 },
+              "ci_lower": { "type": "number" },
+              "ci_upper": { "type": "number" }
+            }
+          }
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "WalkForwardResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "method", "config", "folds", "aggregate", "warning", "recommendation"],
+      "properties": {
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "method": { "const": "anchored" },
+        "config": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["train_bars", "test_bars", "step_bars", "min_folds"],
+          "properties": {
+            "train_bars": { "type": "integer" },
+            "test_bars": { "type": "integer" },
+            "step_bars": { "type": "integer" },
+            "min_folds": { "type": "integer" }
+          }
+        },
+        "folds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/WalkForwardFold" }
+        },
+        "aggregate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["folds", "evaluated", "reactions", "rate", "ci", "sign_test_p", "independent"],
+          "properties": {
+            "folds": { "type": "integer" },
+            "evaluated": { "type": "integer" },
+            "reactions": { "type": "integer" },
+            "rate": { "type": "number" },
+            "ci": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["lower", "upper"],
+              "properties": { "lower": { "type": "number" }, "upper": { "type": "number" } }
+            },
+            "sign_test_p": { "type": "number" },
+            "independent": { "const": false }
+          }
+        },
+        "warning": { "type": "string" },
+        "recommendation": { "type": ["string", "null"] }
+      }
+    },
+    "WalkForwardFold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fold_id", "train_start_epoch", "train_end_epoch", "test_start_epoch", "test_end_epoch", "bars_train", "bars_test", "zones_evaluated", "reactions", "evaluated_touches", "reaction_rate", "ci_lower", "ci_upper", "p_value_raw", "p_value_adj", "stage"],
+      "properties": {
+        "fold_id": { "type": "string" },
+        "train_start_epoch": { "type": "integer" },
+        "train_end_epoch": { "type": "integer" },
+        "test_start_epoch": { "type": "integer" },
+        "test_end_epoch": { "type": "integer" },
+        "bars_train": { "type": "integer" },
+        "bars_test": { "type": "integer" },
+        "zones_evaluated": { "type": "integer" },
+        "reactions": { "type": "integer" },
+        "evaluated_touches": { "type": "integer" },
+        "reaction_rate": { "type": ["number", "null"] },
+        "ci_lower": { "type": ["number", "null"] },
+        "ci_upper": { "type": ["number", "null"] },
+        "p_value_raw": { "type": ["number", "null"] },
+        "p_value_adj": { "type": ["number", "null"] },
+        "stage": { "const": "oos" }
+      }
+    },
+    "FeatureStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name_es", "category", "status", "min_sample", "sample_size", "reason", "ui_path", "stage"],
+      "properties": {
+        "id": { "type": "string" },
+        "name_es": { "type": "string" },
+        "category": { "enum": ["events", "zones", "evt", "volatility", "survival", "diagnostics", "walkforward", "data"] },
+        "status": { "$ref": "#/$defs/AnalysisStatus" },
+        "min_sample": { "type": "integer", "minimum": 1 },
+        "sample_size": { "type": "integer", "minimum": 0 },
+        "reason": { "type": ["string", "null"] },
+        "ui_path": { "type": "string" },
+        "stage": { "enum": ["in_sample", "oos"] }
+      }
+    },
+    "ErrorRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message_es", "detail", "occurred_at", "retryable", "source", "context"],
+      "properties": {
+        "code": { "type": "string" },
+        "severity": { "enum": ["info", "warning", "error", "critical"] },
+        "message_es": { "type": "string" },
+        "detail": { "type": ["string", "null"] },
+        "occurred_at": { "type": "string", "format": "date-time" },
+        "retryable": { "type": "boolean" },
+        "source": { "enum": ["deriv", "cache", "analytics", "ui", "config", "stream"] },
+        "context": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "OverallStatus": { "enum": ["ready", "partial", "stale", "error"] }
+  }
+}
