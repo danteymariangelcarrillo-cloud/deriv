@@ -1,12 +1,9 @@
-# Python
 .venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.env
 dist/
 build/
-# Entorno
-.env
-# Plugin runtime state (no versionar)
 .swarm/
