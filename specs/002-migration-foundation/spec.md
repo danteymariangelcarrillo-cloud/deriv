@@ -20,7 +20,7 @@ Esta especificación define la **Fase 1 (Fundación)** de la migración del prot
 5. Auth: **Single-user local** (sin login, según spec padre)
 6. Persistencia: **Solo RAM + Export manual** (CERO DISCO — requisito hard)
 7. Rate limit Deriv: **150/min** (token bucket con margen 30%)
-8. Downsampling: **LTTB** (preserva forma visual, ~2 ms overhead)
+8. Downsampling: **LTTB** (preserva forma visual; ~33 ms para 50k→5k con la implementación numpy interna, objetivo < 5 ms reservado al wrapper C `downsample`)
 
 **Fuera de alcance de esta fase:**
 - Frontend (Fase 4)

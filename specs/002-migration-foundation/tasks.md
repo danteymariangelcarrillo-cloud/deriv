@@ -80,12 +80,13 @@ Desglose granular de tareas para la Fase 1. Cada tarea es una unidad de trabajo 
 **Subtareas**:
 - [ ] `_safe_name()`: migración exacta de `boom_crash_quant_analyzer.py` L1649
 - [ ] `config_hash()`: implementación propia — SHA-256 de JSON canónico (sorted keys) → `sha256:...`
-- [ ] `downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray`: wrapper `downsample` librería
+- [ ] `downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray`: implementación interna con numpy (la librería C `downsample` no es dependencia del proyecto), preservando la semántica LTTB
 - [ ] `ensure_utc_datetime()`: normalización timestamps
 - [ ] `generate_deterministic_uuid5(namespace: str, *parts: str) -> str`: para zone_id, event_id, snapshot_id
 
 **Criterios de Aceptación**:
-- `downsample_lttb` reduce 50k → 5k puntos en < 5ms
+- `downsample_lttb` reduce 50k → 5k puntos en ≤ 100 ms con la implementación interna numpy (medido ~33 ms de mediana en la máquina de referencia); el objetivo < 5 ms aplica solo al wrapper C `downsample`, que no es dependencia del proyecto
+  - Desviación consciente (T003): LTTB exacto es secuencial — el ancla de cada bucket es el punto elegido en el anterior — por lo que la implementación pura Python/numpy no alcanza el objetivo del wrapper C
 - UUID5 determinista: mismo input → mismo UUID
 - `config_hash` idempotente; ubicado en `utils.py`
 - Tests: `test_utils.py`

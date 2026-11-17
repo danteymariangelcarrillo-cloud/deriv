@@ -31,7 +31,7 @@ Construir la **capacidad fundacional** del dashboard: configuración tipada (Pyd
 | **Cache** | `collections.deque` + LRU dict | RAM-only, O(1) append/pop, `maxlen` evicción automática |
 | **Concurrencia** | `asyncio` + `ThreadPoolExecutor(max_workers=2)` | i3-10100F = 4 hilos; 2 para CPU-bound (analytics), 2 para API/WS |
 | **Estadística** | scipy, statsmodels, arch | Ya en parent spec; Markov requiere statsmodels ≥ 0.14 |
-| **Downsampling** | LTTB (`downsample` si está disponible; si no, implementación interna) | ~2ms/50k puntos, preserva picos |
+| **Downsampling** | LTTB (`downsample` si está disponible; si no, implementación interna) | ~33 ms/50k→5k con numpy interno (< 5 ms solo con la librería C `downsample`); preserva picos |
 | **Testing** | pytest + fixtures determinísticas | Seeds fijas, paridad numérica 1e-10, sin red en unit |
 | **Logging** | structlog (consola JSON) | Sin archivos, structured, niveles configurables |
 
