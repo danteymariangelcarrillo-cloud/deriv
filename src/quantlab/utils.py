@@ -73,10 +73,15 @@ def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
 def _validate_lttb_input(data: np.ndarray, max_points: int) -> np.ndarray:
     """Valida la entrada de ``downsample_lttb`` y la devuelve como ``float``.
 
-    Aplica la conversión a ``float`` y comprueba, en este orden, que
-    ``max_points >= 3``, que la forma sea ``(N, 2)`` y que haya al menos un
-    punto. Las vistas o copias resultantes conservan la forma original.
+    Comprueba, en este orden, que ``max_points`` sea un entero (``bool`` y
+    tipos no enteros como ``5.0`` o ``"5"`` se rechazan con ``TypeError``; se
+    acepta ``int`` y ``np.integer``), que ``max_points >= 3``, que la forma sea
+    ``(N, 2)`` y que haya al menos un punto. Las vistas o copias resultantes
+    conservan la forma original.
     """
+    if isinstance(max_points, bool) or not isinstance(max_points, (int, np.integer)):
+        raise TypeError(f"max_points debe ser int, recibido {type(max_points).__name__}")
+    max_points = int(max_points)
     arr = np.asarray(data, dtype=float)
     if max_points < 3:
         raise ValueError(f"max_points debe ser >= 3, recibido {max_points}")
@@ -224,15 +229,23 @@ def downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray:
     return result
 
 
-def ensure_utc_datetime(value: datetime | float | str) -> datetime:
+def ensure_utc_datetime(
+    value: datetime | float | str | np.integer | np.floating,
+) -> datetime:
     """Normaliza ``value`` a un ``datetime`` consciente en UTC.
 
-    Acepta ``datetime`` (ingenuo o con zona), epoch en segundos (``int`` o
-    ``float``) y cadenas ISO-8601 con separador ``T`` o espacio y sufijo ``Z``
-    opcional. El resultado siempre lleva ``tzinfo=timezone.utc``.
+    Acepta ``datetime`` (ingenuo o con zona), epoch en segundos (``int``,
+    ``float`` o escalares numpy ``np.integer``/``np.floating``, típicos de
+    series alimentadas por pandas/numpy) y cadenas ISO-8601 con separador ``T``
+    o espacio y sufijo ``Z`` opcional. El resultado siempre lleva
+    ``tzinfo=timezone.utc``.
     """
     if isinstance(value, bool):
         raise TypeError("value no puede ser bool; se esperaba fecha, epoch o ISO-8601")
+    if isinstance(value, np.integer):
+        value = int(value)
+    elif isinstance(value, np.floating):
+        value = float(value)
     if isinstance(value, datetime):
         if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
             return value.replace(tzinfo=UTC)
@@ -269,8 +282,12 @@ def generate_deterministic_uuid5(namespace: str, *parts: str) -> str:
     ``"|".join(str(part) for part in parts)``. Mismos argumentos → mismo UUID
     en cualquier proceso o ejecución; distinto namespace o distinto orden de
     partes → UUID distinto. Se devuelve la forma canónica en minúsculas.
+    ``namespace`` debe ser ``str`` (otro tipo lanza ``TypeError``) y no puede
+    estar vacío ni ser sólo espacios (lanza ``ValueError``).
     """
-    if not isinstance(namespace, str) or not namespace.strip():
+    if not isinstance(namespace, str):
+        raise TypeError(f"namespace debe ser str, recibido {type(namespace).__name__}")
+    if not namespace.strip():
         raise ValueError("namespace no puede estar vacío ni ser sólo espacios")
     ns_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, f"quantlab:{namespace}")
     name = "|".join(str(part) for part in parts)

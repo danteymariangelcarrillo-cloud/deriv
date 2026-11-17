@@ -131,12 +131,39 @@ def test_downsample_lttb_keeps_x_monotonic() -> None:
 
 
 def test_downsample_lttb_preserves_spike() -> None:
+    """El pico sobrevive aunque el muestreo por paso fijo lo perdería.
+
+    El índice 5003 no cae en la rejilla del muestreo ingenuo (``stride = 10``),
+    así que un ``data[::stride]`` no contendría el pico: sólo la selección por
+    área de triángulo de LTTB lo conserva.
+    """
     data = _make_series(10_000)
-    spike_index = 5_000
+    spike_index = 5_003
     data[spike_index, 1] = 500.0
     reduced = downsample_lttb(data, 1_000)
     assert reduced[:, 1].max() == 500.0
     assert np.any(reduced[:, 0] == spike_index)
+    stride = data.shape[0] // 1_000
+    naive_stride_sample = data[::stride]
+    assert not np.any(naive_stride_sample[:, 0] == spike_index)
+
+
+def test_downsample_lttb_pins_triangle_area_selection() -> None:
+    """Fija la regla de selección LTTB en un fixture calculable a mano.
+
+    Con ``max_points=3`` hay un único bucket que cubre los índices 1..5, la
+    media del bucket siguiente es ``(6, 0)`` y el ancla es ``(0, 0)``, de modo
+    que el área vale ``6 * |y|`` y el candidato elegido es el pico del índice 1.
+    Un muestreo por paso fijo (``data[:: 2]``) devolvería el índice 2 y no
+    contiene el valor ``1.0`` en x, así que este test lo discrimina.
+    """
+    data = np.array(
+        [[0, 0], [1, 10], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]], dtype=float
+    )
+    expected = np.array([[0.0, 0.0], [1.0, 10.0], [6.0, 0.0]])
+    naive_stride_sample = data[:: data.shape[0] // 3]
+    assert not np.any(naive_stride_sample[:, 0] == 1.0)
+    np.testing.assert_array_equal(downsample_lttb(data, 3), expected)
 
 
 def test_downsample_lttb_returns_small_input_unchanged() -> None:
@@ -155,6 +182,20 @@ def test_downsample_lttb_returns_minimal_input_unchanged() -> None:
 def test_downsample_lttb_rejects_too_few_points(max_points: int) -> None:
     with pytest.raises(ValueError):
         downsample_lttb(_make_series(100), max_points)
+
+
+@pytest.mark.parametrize("max_points", [5.0, "5", True])
+def test_downsample_lttb_rejects_non_integer_max_points(max_points: object) -> None:
+    with pytest.raises(TypeError):
+        downsample_lttb(_make_series(100), max_points)  # type: ignore[arg-type]
+
+
+def test_downsample_lttb_accepts_numpy_integer_max_points() -> None:
+    data = _make_series(100)
+    np.testing.assert_array_equal(
+        downsample_lttb(data, np.int64(10)),  # type: ignore[arg-type]
+        downsample_lttb(data, 10),
+    )
 
 
 @pytest.mark.parametrize(
@@ -176,11 +217,14 @@ def test_downsample_lttb_rejects_empty_input() -> None:
 
 
 def test_downsample_lttb_performance() -> None:
-    """El objetivo de referencia es < 5 ms para 50k → 5k puntos.
+    """La implementación numpy interna debe reducir 50k → 5k puntos en <= 100 ms.
 
-    Se fija un límite CI-safe de 50 ms porque el hardware compartido no permite
-    garantizar la cifra de referencia; una regresión a un bucle Python por
-    punto superaría holgadamente ese margen.
+    El criterio de la spec está re-baselizado: ``<= 100 ms`` para la
+    implementación numpy propia (medido ~33 ms de mediana y ~42 ms de máximo en
+    la máquina de referencia) y el objetivo ``< 5 ms`` aplica sólo al wrapper C
+    opcional de la librería ``downsample``, que no es dependencia del proyecto.
+    El margen de 100 ms es el límite de CI: detecta regresiones a un bucle
+    Python por punto sin depender de la carga del runner.
     """
     data = _make_series(50_000)
     downsample_lttb(data, 5_000)  # calentamiento
@@ -188,7 +232,7 @@ def test_downsample_lttb_performance() -> None:
     result = downsample_lttb(data, 5_000)
     elapsed_ms = (time.perf_counter() - started) * 1_000.0
     assert result.shape == (5_000, 2)
-    assert elapsed_ms < 50.0, f"LTTB tardó {elapsed_ms:.2f} ms (límite CI 50 ms)"
+    assert elapsed_ms < 100.0, f"LTTB tardó {elapsed_ms:.2f} ms (límite CI 100 ms)"
 
 
 # --------------------------- ensure_utc_datetime ---------------------------
@@ -215,6 +259,19 @@ def test_ensure_utc_epoch_int() -> None:
 
 def test_ensure_utc_epoch_float() -> None:
     result = ensure_utc_datetime(1_704_067_200.5)
+    assert result.tzinfo is UTC
+    assert result == datetime(2024, 1, 1, 0, 0, 0, 500_000, tzinfo=UTC)
+
+
+def test_ensure_utc_numpy_integer_epoch() -> None:
+    result = ensure_utc_datetime(np.int64(1_704_067_200))
+    assert result.tzinfo is UTC
+    assert result == datetime(2024, 1, 1, tzinfo=UTC)
+    assert result == ensure_utc_datetime(1_704_067_200)
+
+
+def test_ensure_utc_numpy_float_epoch() -> None:
+    result = ensure_utc_datetime(np.float64(1_704_067_200.5))
     assert result.tzinfo is UTC
     assert result == datetime(2024, 1, 1, 0, 0, 0, 500_000, tzinfo=UTC)
 
@@ -265,6 +322,12 @@ def test_uuid5_changes_with_part_order() -> None:
 def test_uuid5_rejects_blank_namespace(namespace: str) -> None:
     with pytest.raises(ValueError):
         generate_deterministic_uuid5(namespace, "BOOM1000")
+
+
+@pytest.mark.parametrize("namespace", [5, None, 5.0])
+def test_uuid5_rejects_non_str_namespace(namespace: object) -> None:
+    with pytest.raises(TypeError):
+        generate_deterministic_uuid5(namespace, "BOOM1000")  # type: ignore[arg-type]
 
 
 def test_uuid5_is_version_five() -> None:

@@ -1,0 +1,11 @@
+{
+  "auto_review": {
+    "enabled": true,
+    "final_review": {
+      "mode": "advisory"
+    }
+  },
+  "council": {
+    "enabled": false
+  }
+}
