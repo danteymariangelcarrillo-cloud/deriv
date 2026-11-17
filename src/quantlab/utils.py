@@ -70,6 +70,96 @@ def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
     return "sha256:" + hashlib.sha256(json_bytes).hexdigest()
 
 
+def _validate_lttb_input(data: np.ndarray, max_points: int) -> np.ndarray:
+    """Valida la entrada de ``downsample_lttb`` y la devuelve como ``float``.
+
+    Aplica la conversión a ``float`` y comprueba, en este orden, que
+    ``max_points >= 3``, que la forma sea ``(N, 2)`` y que haya al menos un
+    punto. Las vistas o copias resultantes conservan la forma original.
+    """
+    arr = np.asarray(data, dtype=float)
+    if max_points < 3:
+        raise ValueError(f"max_points debe ser >= 3, recibido {max_points}")
+    if arr.ndim != 2 or arr.shape[1] != 2:
+        raise ValueError(f"data debe tener forma (N, 2), recibida {arr.shape}")
+    if arr.shape[0] == 0:
+        raise ValueError("data no puede estar vacío (N == 0)")
+    return arr
+
+
+def _bucket_bounds(
+    point_count: int, bucket_count: int, step: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Calcula las cotas ``[inicio, fin)`` de los buckets de candidatos.
+
+    El bucket ``b`` cubre ``start_indexes[b]`` hasta ``end_indexes[b]`` (fin
+    exclusivo) y el último termina en el último punto real, de modo que el
+    punto final nunca se consume como candidato: se añade siempre aparte.
+    """
+    bucket_index = np.arange(bucket_count, dtype=np.float64)
+    start_indexes = np.floor(bucket_index * step).astype(np.intp) + 1
+    end_indexes = np.empty(bucket_count, dtype=np.intp)
+    end_indexes[:-1] = start_indexes[1:]
+    end_indexes[-1] = point_count - 1
+    return start_indexes, end_indexes
+
+
+def _bucket_average_points(
+    x_values: np.ndarray,
+    y_values: np.ndarray,
+    step: float,
+    bucket_count: int,
+    point_count: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Calcula la media (x, y) del bucket siguiente a cada bucket.
+
+    Cada bucket de candidatos se compara contra la media del siguiente. Las
+    medias se obtienen con sumas acumuladas (``cumsum``) en lugar de recorrer
+    los puntos en Python; los buckets sin puntos reutilizan el último punto de
+    la serie como referencia.
+    """
+    average_offsets = np.arange(1, bucket_count + 1, dtype=np.float64)
+    average_start_indexes = np.floor(average_offsets * step).astype(np.intp) + 1
+    average_end_indexes = np.minimum(
+        np.floor((average_offsets + 1.0) * step).astype(np.intp) + 1,
+        point_count,
+    )
+
+    average_counts = average_end_indexes - average_start_indexes
+    safe_end_indexes = np.maximum(average_end_indexes, average_start_indexes)
+    cumulative_x = np.concatenate(([0.0], np.cumsum(x_values)))
+    cumulative_y = np.concatenate(([0.0], np.cumsum(y_values)))
+    sums_x = cumulative_x[safe_end_indexes] - cumulative_x[average_start_indexes]
+    sums_y = cumulative_y[safe_end_indexes] - cumulative_y[average_start_indexes]
+    divisor = np.maximum(average_counts, 1)
+    average_x = np.where(average_counts > 0, sums_x / divisor, x_values[-1])
+    average_y = np.where(average_counts > 0, sums_y / divisor, y_values[-1])
+    return average_x, average_y
+
+
+def _triangle_area_argmax(
+    x_values: np.ndarray,
+    y_values: np.ndarray,
+    start: int,
+    end: int,
+    anchor_x: float,
+    anchor_y: float,
+    average_x: float,
+    average_y: float,
+) -> int:
+    """Devuelve el índice absoluto del punto con mayor área de triángulo.
+
+    El triángulo se forma con el ancla anterior, la media del bucket siguiente
+    y cada candidato del rango ``[start, end)``; se elige el de mayor
+    desviación absoluta respecto a esa tendencia local.
+    """
+    delta_x = anchor_x - average_x
+    delta_y = average_y - anchor_y
+    offset = delta_x * anchor_y + delta_y * anchor_x
+    areas = np.abs(x_values[start:end] * delta_y + y_values[start:end] * delta_x - offset)
+    return start + int(areas.argmax())
+
+
 def downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray:
     """Reduce ``data`` a ``max_points`` filas preservando la forma visual.
 
@@ -83,46 +173,20 @@ def downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray:
     el último punto, y los picos sobreviven porque cada bucket aporta el punto
     de mayor desviación respecto a la tendencia local.
     """
-    arr = np.asarray(data, dtype=float)
-    if max_points < 3:
-        raise ValueError(f"max_points debe ser >= 3, recibido {max_points}")
-    if arr.ndim != 2 or arr.shape[1] != 2:
-        raise ValueError(f"data debe tener forma (N, 2), recibida {arr.shape}")
+    arr = _validate_lttb_input(data, max_points)
     point_count = arr.shape[0]
-    if point_count == 0:
-        raise ValueError("data no puede estar vacío (N == 0)")
     if point_count <= max_points:
         return arr.copy()
 
     bucket_count = max_points - 2
     step = (point_count - 2) / bucket_count
-
-    bucket_index = np.arange(bucket_count, dtype=np.float64)
-    start_indexes = np.floor(bucket_index * step).astype(np.intp) + 1
-    end_indexes = np.empty(bucket_count, dtype=np.intp)
-    end_indexes[:-1] = start_indexes[1:]
-    end_indexes[-1] = point_count - 1
-
-    # Cada bucket de candidatos se compara contra la media del siguiente bucket.
-    average_offsets = np.arange(1, bucket_count + 1, dtype=np.float64)
-    average_start_indexes = np.floor(average_offsets * step).astype(np.intp) + 1
-    average_end_indexes = np.minimum(
-        np.floor((average_offsets + 1.0) * step).astype(np.intp) + 1,
-        point_count,
-    )
+    start_indexes, end_indexes = _bucket_bounds(point_count, bucket_count, step)
 
     x_values = np.ascontiguousarray(arr[:, 0])
     y_values = np.ascontiguousarray(arr[:, 1])
-
-    average_counts = average_end_indexes - average_start_indexes
-    safe_end_indexes = np.maximum(average_end_indexes, average_start_indexes)
-    cumulative_x = np.concatenate(([0.0], np.cumsum(x_values)))
-    cumulative_y = np.concatenate(([0.0], np.cumsum(y_values)))
-    sums_x = cumulative_x[safe_end_indexes] - cumulative_x[average_start_indexes]
-    sums_y = cumulative_y[safe_end_indexes] - cumulative_y[average_start_indexes]
-    divisor = np.maximum(average_counts, 1)
-    average_x = np.where(average_counts > 0, sums_x / divisor, x_values[-1])
-    average_y = np.where(average_counts > 0, sums_y / divisor, y_values[-1])
+    average_x, average_y = _bucket_average_points(
+        x_values, y_values, step, bucket_count, point_count
+    )
 
     result = np.empty((max_points, 2), dtype=float)
     result[0] = arr[0]
@@ -144,17 +208,16 @@ def downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray:
         if bucket_end <= bucket_start:
             chosen = bucket_start
         else:
-            anchor_x = x_list[anchor]
-            anchor_y = y_list[anchor]
-            delta_x = anchor_x - average_x_list[bucket]
-            delta_y = average_y_list[bucket] - anchor_y
-            offset = delta_x * anchor_y + delta_y * anchor_x
-            areas = np.abs(
-                x_values[bucket_start:bucket_end] * delta_y
-                + y_values[bucket_start:bucket_end] * delta_x
-                - offset
+            chosen = _triangle_area_argmax(
+                x_values,
+                y_values,
+                bucket_start,
+                bucket_end,
+                x_list[anchor],
+                y_list[anchor],
+                average_x_list[bucket],
+                average_y_list[bucket],
             )
-            chosen = bucket_start + int(areas.argmax())
         result[bucket + 1] = arr[chosen]
         anchor = chosen
 
