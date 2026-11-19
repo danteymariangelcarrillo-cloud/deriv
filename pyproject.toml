@@ -41,3 +41,6 @@ asyncio_mode = "auto"
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+# legacy/ es referencia inmutable (hash fijado); specs/ y .specify/.swarm/.opencode
+# son documentación y tooling: no se lintean ni se formatean.
+exclude = ["legacy", "specs", ".specify", ".swarm", ".opencode"]
