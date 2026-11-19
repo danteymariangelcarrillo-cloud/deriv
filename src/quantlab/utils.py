@@ -34,6 +34,8 @@ def _safe_name(name: str) -> str:
     Migración byte a byte del helper legacy (``boom_crash_quant_analyzer.py``,
     L1649). Se usa ``str.isalnum()`` — consciente de Unicode, no plegado a
     ASCII — y se recortan los guiones bajos de los extremos.
+    Los separadores consecutivos no se colapsan: ``"Volatility 75 (1s) Index"``
+    produce ``"volatility_75__1s__index"``.
     """
     if not isinstance(name, str):
         raise TypeError(f"name debe ser str, recibido {type(name).__name__}")
