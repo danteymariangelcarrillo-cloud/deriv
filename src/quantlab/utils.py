@@ -268,10 +268,7 @@ def ensure_utc_datetime(
         if parsed.tzinfo is None:
             return parsed.replace(tzinfo=UTC)
         return parsed.astimezone(UTC)
-    raise TypeError(
-        "value debe ser datetime, int, float o str, "
-        f"recibido {type(value).__name__}"
-    )
+    raise TypeError(f"value debe ser datetime, int, float o str, recibido {type(value).__name__}")
 
 
 def generate_deterministic_uuid5(namespace: str, *parts: str) -> str:
