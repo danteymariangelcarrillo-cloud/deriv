@@ -4,7 +4,7 @@
 
 Guía para instalar, ejecutar y verificar la **Fase 1 (Backend + APIs)** en Windows 10/11. La aplicación es de **solo lectura**, **CERO DISCO**, sin autenticación.
 
-> **Estado**: Este quickstart describe la Fase 1 implementada. El frontend (Vanilla JS + Plotly.js) es Fase 4.
+> **Estado**: Este quickstart describe el **objetivo** de la Fase 1, que **todavía no está implementada**. Sólo existen `src/quantlab/utils.py` y sus tests; no hay app FastAPI, rutas, `scripts/`, `settings.py` ni cliente Deriv. Los comandos de esta guía fallarán hasta completar las tareas de `tasks.md`. El frontend (Vanilla JS + Plotly.js) es Fase 4.
 
 ---
 
@@ -42,7 +42,7 @@ Edita `.env` (no se versiona). Todas tienen valores por defecto seguros.
 | `QUANTLAB_HOST` | `127.0.0.1` | Interfaz de escucha (no exponer sin auth) |
 | `QUANTLAB_PORT` | `8050` | Puerto; si ocupado prueba siguiente |
 | `QUANTLAB_DEBUG` | `0` | `1` = recarga auto + trazas Dash |
-| `QUANTLAB_DERIV_ENDPOINTS` | ver abajo | Lista separada por comas, orden prioridad |
+| `QUANTLAB_DERIV_ENDPOINTS` | ver abajo | Lista separada por comas, orden prioridad (pendiente de validar en T020) |
 | `QUANTLAB_RATE_LIMIT_PER_MIN` | `150` | Token bucket propio (Deriv permite 220) |
 | `QUANTLAB_MAX_TICKS` | `50000` | Max ticks por símbolo en RAM |
 | `QUANTLAB_MAX_CANDLES_PER_TF` | `30000` | Max velas por TF en RAM |

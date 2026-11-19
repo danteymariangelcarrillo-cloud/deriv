@@ -8,6 +8,8 @@ Desglose granular de tareas para la Fase 1. Cada tarea es una unidad de trabajo 
 
 **Nota de secuenciación (2026-11-16)**: T000 (bootstrap) precede a T001. T017 se movió a M1C para romper el ciclo T017↔T021; T016 usa un `FakeAnalyticsEngine` hasta M1C. Los fixtures se generan en T029.
 
+**Estado real (2026-11-18)**: **T000, T001, T002 y T003 completadas**; 40 tareas pendientes. No hay app FastAPI, rutas, `scripts/` ni cliente Deriv: la Fase 1 **no** está implementada y `quickstart.md` describe el objetivo.
+
 ---
 
 ## Milestone M1A — Config + DerivClient + RAM Cache (Semana 1)
@@ -18,11 +20,11 @@ Desglose granular de tareas para la Fase 1. Cada tarea es una unidad de trabajo 
 **Descripción**: Crear el esqueleto ejecutable antes de T001.
 
 **Subtareas**:
-- [ ] `pyproject.toml`: `requires-python = ">=3.13,<3.14"`; deps `fastapi`, `uvicorn`, `websockets`, `pydantic`, `pydantic-settings`, `pandas`, `numpy`, `scipy`, `statsmodels`, `arch`, `structlog`, `psutil`, `downsample` (si está disponible); dev `pytest`, `pytest-asyncio`, `httpx`, `ruff`
-- [ ] `uv python install 3.13` + `uv python pin 3.13` + `uv sync`
-- [ ] Crear `src/quantlab/` y `tests/{unit,integration,contract,performance}` con `__init__.py`
-- [ ] `.gitignore`, `.env.example` y `src/quantlab/__main__.py`
-- [ ] `git init` + commit inicial; mover prototipo+notebook a `legacy/` sin modificar; `tests/fixtures/legacy_sha256.json` con SHA-256
+- [x] `pyproject.toml`: `requires-python = ">=3.13,<3.14"`; deps `fastapi`, `uvicorn`, `websockets`, `pydantic`, `pydantic-settings`, `pandas`, `numpy`, `scipy`, `statsmodels`, `arch`, `structlog`, `psutil`, `downsample` (si está disponible); dev `pytest`, `pytest-asyncio`, `httpx`, `ruff`
+- [x] `uv python install 3.13` + `uv python pin 3.13` + `uv sync`
+- [x] Crear `src/quantlab/` y `tests/{unit,integration,contract,performance}` con `__init__.py`
+- [x] `.gitignore`, `.env.example` y `src/quantlab/__main__.py`
+- [x] `git init` + commit inicial; mover prototipo+notebook a `legacy/` sin modificar; `tests/fixtures/legacy_sha256.json` con SHA-256
 
 **Criterios de Aceptación**:
 - `uv sync` y `uv run python -c "import quantlab"` funcionan
@@ -37,19 +39,20 @@ Desglose granular de tareas para la Fase 1. Cada tarea es una unidad de trabajo 
 **Descripción**: Implementar modelos Pydantic v2 para toda la configuración tipada con validación estricta.
 
 **Subtareas**:
-- [ ] `AnalyzerConfig`: 13 campos base + `timeframe_overrides` (dict[str, dict])
-- [ ] `ModelConfig`: rolling_window, garch_p/q, evt_threshold_quantile, wf_train/test/step_days por TF, regime_method
-- [ ] `GateConfig`: 12 gates mínimos + wf_min_days por TF
-- [ ] `RAMConfig`: 8 límites de buffers + downsample + figure_cache + RAM warning/critical
-- [ ] `settings.py`: `BaseSettings` desde `.env` con prefijo `QUANTLAB_`
-- [ ] `config_hash()`: usa `utils.config_hash` (implementado en T003)
-- [ ] Validación: rangos estrictos (`confloat`, `conint`), partial update support
+- [x] `AnalyzerConfig`: 13 campos base + `timeframe_overrides` (dict[str, dict])
+- [x] `ModelConfig`: rolling_window, garch_p/q, evt_threshold_quantile, wf_train/test/step_days por TF, regime_method
+- [x] `GateConfig`: 12 gates mínimos + wf_min_days por TF
+- [x] `RAMConfig`: 8 límites de buffers + downsample + figure_cache + RAM warning/critical
+- [x] `settings.py`: `BaseSettings` desde `.env` con prefijo `QUANTLAB_`
+- [x] `config_hash()`: usa `utils.config_hash` (implementado en T003)
+- [x] Validación: rangos estrictos (`Field(gt/ge/lt/le)`, `extra="forbid"`, `frozen`), partial update support (`QuantLabConfig.updated`)
 
 **Criterios de Aceptación**:
 - `AnalyzerConfig()` defaults coinciden con `boom_crash_quant_analyzer.py` v2.2.0
 - `config_hash` idempotente: mismo input → mismo hash; cambio semántico → hash distinto
 - `settings.py` carga `.env` y valida tipos
-- Tests: `test_config.py` + `test_config_hash.py`
+- Tests: `test_config.py` + `test_config_hash.py` + `test_settings.py` (los tests de entorno viven en `test_config.py`)
+- Notas de desviación: `AnalyzerConfig` conserva los 13 campos del prototipo, incluido `days=20` (la spec lista 12); los mapas `wf_*` cubren las 6 temporalidades de `data-model.md`, no sólo 5min/1h como en `spec.md`
 
 ---
 
@@ -59,14 +62,14 @@ Desglose granular de tareas para la Fase 1. Cada tarea es una unidad de trabajo 
 **Descripción**: Definir jerarquía de excepciones y códigos de error estructurados con mensajes en español.
 
 **Subtareas**:
-- [ ] `ErrorCode` enum: 20+ códigos (CONFIG_INVALID, DERIV_TRANSPORT, COMPUTE_INSUFFICIENT, etc.)
-- [ ] `Severity` enum: info, warning, error, critical
-- [ ] `ErrorRecord` Pydantic: code, severity, message_es, detail, occurred_at, retryable, source, context
-- [ ] `QuantLabError` base exception + subclasses por categoría (ConfigError, DerivError, AnalyticsError, CacheError, StreamError)
-- [ ] `to_error_record()` helper para logging estructurado
+- [x] `ErrorCode` enum: 18 códigos documentados (CONFIG_INVALID, DERIV_TRANSPORT, COMPUTE_INSUFFICIENT, etc.)
+- [x] `Severity` enum: info, warning, error, critical
+- [x] `ErrorRecord` Pydantic: code, severity, message_es, detail, occurred_at, retryable, source, context
+- [x] `QuantLabError` base exception + subclasses por categoría (ConfigError, DerivError, AnalyticsError, CacheError, StreamError)
+- [x] `to_error_record()` helper para logging estructurado
 
 **Criterios de Aceptación**:
-- Todos los códigos de `spec.md §10` y `data-model.md §10` cubiertos
+- Todos los códigos de `data-model.md §10` cubiertos (18; el texto de T002 dice "20+" pero la tabla normativa define 18)
 - Mensajes ES accionables (no técnicos crudos)
 - Tests: `test_errors.py` — serialización JSON, retryable logic
 
@@ -78,17 +81,18 @@ Desglose granular de tareas para la Fase 1. Cada tarea es una unidad de trabajo 
 **Descripción**: Funciones auxiliares compartidas.
 
 **Subtareas**:
-- [ ] `_safe_name()`: migración exacta de `boom_crash_quant_analyzer.py` L1649
-- [ ] `config_hash()`: implementación propia — SHA-256 de JSON canónico (sorted keys) → `sha256:...`
-- [ ] `downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray`: implementación interna con numpy (la librería C `downsample` no es dependencia del proyecto), preservando la semántica LTTB
-- [ ] `ensure_utc_datetime()`: normalización timestamps
-- [ ] `generate_deterministic_uuid5(namespace: str, *parts: str) -> str`: para zone_id, event_id, snapshot_id
+- [x] `_safe_name()`: migración exacta de `boom_crash_quant_analyzer.py` L1649
+- [x] `config_hash()`: implementación propia — SHA-256 de JSON canónico (sorted keys) → `sha256:...`
+- [x] `downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray`: implementación interna con numpy (la librería C `downsample` no es dependencia del proyecto), preservando la semántica LTTB
+- [x] `ensure_utc_datetime()`: normalización timestamps
+- [x] `generate_deterministic_uuid5(namespace: str, *parts: str) -> str`: para zone_id, event_id, snapshot_id
 
 **Criterios de Aceptación**:
 - `downsample_lttb` reduce 50k → 5k puntos en ≤ 100 ms con la implementación interna numpy (medido ~33 ms de mediana en la máquina de referencia); el objetivo < 5 ms aplica solo al wrapper C `downsample`, que no es dependencia del proyecto
   - Desviación consciente (T003): LTTB exacto es secuencial — el ancla de cada bucket es el punto elegido en el anterior — por lo que la implementación pura Python/numpy no alcanza el objetivo del wrapper C
 - UUID5 determinista: mismo input → mismo UUID
-- `config_hash` idempotente; ubicado en `utils.py`
+- `config_hash` idempotente, estable entre procesos y estricto: rechaza valores no JSON (`set`, `datetime`, `NaN`) en vez de convertirlos con `str`
+- `downsample_lttb` rechaza x no monótona (el contrato la exige no decreciente)
 - Tests: `test_utils.py`
 
 ---
@@ -967,10 +971,10 @@ T034 → T043
 
 | ID | Descripción | Prioridad | Estado | Encargado |
 |----|-------------|-----------|--------|-----------|
-| T000 | Project Bootstrap | P0 | ⬜ Pendiente | — |
-| T001 | Config Pydantic | P0 | ⬜ Pendiente | — |
-| T002 | Errores | P0 | ⬜ Pendiente | — |
-| T003 | Utils | P1 | ⬜ Pendiente | — |
+| T000 | Project Bootstrap | P0 | ✅ Completado | — |
+| T001 | Config Pydantic | P0 | ✅ Completado | — |
+| T002 | Errores | P0 | ✅ Completado | — |
+| T003 | Utils | P1 | ✅ Completado | — |
 | T004 | InstrumentState | P0 | ⬜ Pendiente | — |
 | T005 | RateLimiter | P0 | ⬜ Pendiente | — |
 | T006 | Deriv Allowlist | P0 | ⬜ Pendiente | — |

@@ -17,7 +17,7 @@ Construir la **capacidad fundacional** del dashboard: configuración tipada (Pyd
 - Auth: Single-user local
 - Persistencia: Solo RAM + Export manual (BytesIO)
 - Rate limit: 150/min token bucket
-- Downsampling: LTTB (librería `downsample`)
+- Downsampling: LTTB (implementación interna numpy; la librería `downsample` no es dependencia)
 
 ---
 
@@ -68,7 +68,7 @@ src/quantlab/
 │   ├── stats.py              # Wilson, Binomial, BH-FDR, Bootstrap (paridad 1e-10)
 │   ├── evt.py                # fit_gpd_mle, gpd_return_level, fit_evt_gpd (COMPLETA)
 │   ├── events.py             # Eventos vela/tick, condicional
-│   ├── zones.py              # Pivotes, clustering, evaluación (null geo, FDR, bootstrap)
+│   ├── zones.py              # Pivotes, clustering, evaluación (p_null=0.5 exacto; correcciones optativas)
 │   ├── volatility.py         # GARCH, detect_volatility_regimes (Markov + CUSUM)
 │   ├── survival.py           # Kaplan-Meier (event_index + time), censura
 │   ├── diagnostics.py        # Ljung-Box, Jarque-Bera, ARCH-LM, ADF
@@ -223,7 +223,7 @@ class StreamManager:
 |------|----------|-------------|
 | **T001** | `config.py`, `settings.py` | Pydantic models: AnalyzerConfig, ModelConfig, GateConfig, RAMConfig + `config_hash()` |
 | **T002** | `errors.py` | Taxonomía completa (códigos, severidad, retryable, mensajes ES, context) |
-| **T003** | `utils.py` | `_safe_name`, `config_hash`, `downsample_lttb` (wrapper `downsample`) |
+| **T003** | `utils.py` | `_safe_name`, `config_hash`, `downsample_lttb` (numpy interno) |
 | **T004** | `state.py` | `InstrumentState` dataclass con buffers `deque` + `asyncio.Lock` |
 | **T005** | `data/rate_limiter.py` | `TokenBucket(capacity=30, refill_per_second=2.5)` async-safe |
 | **T006** | `data/deriv_calls.py` | Allowlist llamadas Deriv (solo lectura: active_symbols, ticks_history, ticks subscribe) |
@@ -254,7 +254,7 @@ class StreamManager:
 | **T021** | `analytics/stats.py` | Wilson, Binomial, BH-FDR, Bootstrap (tests paridad 1e-10) |
 | **T022** | `analytics/evt.py` | `fit_gpd_mle`, `gpd_return_level`, **`fit_evt_gpd` COMPLETA** (MLE + KS + Mean Excess + Return Levels) |
 | **T023** | `analytics/events.py` | `detect_candle_extremes`, `detect_tick_extremes`, `conditional_event_table` (paridad) |
-| **T024** | `analytics/zones.py` | `_find_pivots`, `_cluster_levels`, `_evaluate_zone` (null geo, FDR, bootstrap), `detect_reaction_zones` |
+| **T024** | `analytics/zones.py` | `_find_pivots`, `_cluster_levels`, `_evaluate_zone` (p_null=0.5), `detect_reaction_zones` |
 | **T025** | `analytics/volatility.py` | `fit_garch`, **`detect_volatility_regimes` Markov + CUSUM** |
 | **T026** | `analytics/survival.py` | Kaplan-Meier (event_index + time), censura, KS vs Exponencial |
 | **T027** | `analytics/diagnostics.py` | Ljung-Box, Jarque-Bera, ARCH-LM, ADF |

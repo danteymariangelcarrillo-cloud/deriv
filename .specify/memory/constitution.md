@@ -28,11 +28,19 @@ Un **candidato de spike** no es un spike oficial de Deriv. No se presentan
 probabilidades in-sample como predicciones ni se ocultan resultados con muestra
 insuficiente: se muestra un estado "datos insuficientes" con el mínimo requerido.
 
-Las zonas de reacción se contrastan contra un valor nulo calculado a partir de la
-geometría target/stop (no contra 0.5 por defecto) o contra una muestra placebo.
-Las comparaciones múltiples in-sample se corrigen con Benjamini-Hochberg. La
-validación walk-forward se reporta como descriptiva cuando los folds no son
-independientes.
+**Política estadística de la Fase 1 (paridad con el prototipo):** las zonas de
+reacción y el walk-forward se contrastan con `p_null = 0.5`, el mismo valor que
+usa `legacy/boom_crash_quant_analyzer.py`. Benjamini-Hochberg se aplica en el
+agregado walk-forward (out-of-sample), como en el prototipo; no se aplica BH
+in-sample. La validación walk-forward se reporta como descriptiva cuando los
+folds no son independientes.
+
+Las correcciones pendientes —nulo geométrico `b/(a+b)` derivado de target/stop,
+muestra placebo, BH in-sample, semilla de bootstrap explícita, sin backfill y
+KM con censura— están **autorizadas como modo optativo**, nunca por defecto:
+requieren activación explícita y tests de valores esperados (no de paridad
+1e-10 con `legacy/`). Cualquier cambio de la política por defecto exige enmendar
+esta constitución.
 
 ### III. Cero persistencia en disco
 
@@ -51,9 +59,10 @@ snapshot correspondiente.
 ### V. Núcleo testeable y separado de la UI
 
 La ingesta, la estadística y la construcción de snapshots viven en un paquete
-Python independiente de Dash. La UI solo presenta datos y no contiene fórmulas
-estadísticas. Las funciones del núcleo se prueban con datos sintéticos y
-fixtures; los callbacks se prueban con smoke tests.
+Python independiente del servidor web y del frontend. La UI solo presenta datos
+y no contiene fórmulas estadísticas. Las funciones del núcleo se prueban con
+datos sintéticos y fixtures; las rutas y el WebSocket se prueban con tests de
+contrato.
 
 ### VI. Transparencia y trazabilidad
 
@@ -113,4 +122,22 @@ actualización de la versión y aprobación del responsable del proyecto. La
 versión sigue SemVer: MAJOR por cambios incompatibles de principios, MINOR por
 nuevos principios o secciones, PATCH por aclaraciones.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-15 | **Last Amended**: 2026-11-16
+## Registro de enmiendas
+
+### 2.0.0 — 2026-11-18: política estadística de la Fase 1
+
+- **Motivación**: el principio II exigía nulo geométrico y BH in-sample, en
+  contradicción con `VISION.md` §13 y con `specs/002-migration-foundation/`
+  (`p_null = 0.5`, BH solo walk-forward), que preservan el cálculo exacto del
+  prototipo. Dos fuentes de verdad incompatibles bloqueaban T012/T024/T028.
+- **Cambio**: se fija `p_null = 0.5` y BH en walk-forward como política por
+  defecto; las correcciones (nulo geométrico, placebo, BH in-sample, semilla
+  explícita, sin backfill, KM con censura) quedan como modo optativo con
+  autorización explícita.
+- **Impacto**: `specs/002-migration-foundation/{spec,plan,tasks}.md` ya cumplían
+  esta política en lo esencial; se corrigen en el plan dos comentarios que aún
+  decían "null geo/FDR" y "librería downsample". `specs/001-crash-boom-dashboard/`
+  sigue siendo el spec padre que 002 extiende. Se aclara además que el núcleo es
+  independiente del servidor web (FastAPI), no de Dash.
+
+**Version**: 2.0.0 | **Ratified**: 2026-11-15 | **Last Amended**: 2026-11-18
