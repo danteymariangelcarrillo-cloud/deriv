@@ -36,6 +36,9 @@ def _safe_name(name: str) -> str:
     ASCII — y se recortan los guiones bajos de los extremos.
     Los separadores consecutivos no se colapsan: ``"Volatility 75 (1s) Index"``
     produce ``"volatility_75__1s__index"``.
+
+    Raises:
+        TypeError: Si ``name`` no es un ``str``.
     """
     if not isinstance(name, str):
         raise TypeError(f"name debe ser str, recibido {type(name).__name__}")
@@ -49,6 +52,10 @@ def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
     ``model_dump(mode="json")``). El JSON canónico ordena claves y elimina
     espacios, de modo que el mismo contenido lógico produce siempre el mismo
     hash: ``"sha256:" + 64 caracteres hexadecimales``.
+
+    Raises:
+        TypeError: Si ``payload`` no es un modelo pydantic (sin ``model_dump``
+            invocable) ni un ``Mapping``.
     """
     model_dump = getattr(payload, "model_dump", None)
     if callable(model_dump):
@@ -179,6 +186,11 @@ def downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray:
     área del triángulo se resuelve con numpy. Se conservan siempre el primer y
     el último punto, y los picos sobreviven porque cada bucket aporta el punto
     de mayor desviación respecto a la tendencia local.
+
+    Raises:
+        TypeError: Si ``max_points`` no es un entero (un ``bool`` se rechaza).
+        ValueError: Si ``max_points < 3``, si ``data`` no tiene forma ``(N, 2)``
+            o si ``data`` está vacío (``N == 0``).
     """
     arr = _validate_lttb_input(data, max_points)
     point_count = arr.shape[0]
@@ -241,6 +253,12 @@ def ensure_utc_datetime(
     series alimentadas por pandas/numpy) y cadenas ISO-8601 con separador ``T``
     o espacio y sufijo ``Z`` opcional. El resultado siempre lleva
     ``tzinfo=timezone.utc``.
+
+    Raises:
+        TypeError: Si ``value`` es un ``bool`` o un tipo no soportado.
+        ValueError: Si la cadena está vacía, si no se puede interpretar como
+            ISO-8601 o si el epoch queda fuera del rango soportado por la
+            plataforma.
     """
     if isinstance(value, bool):
         raise TypeError("value no puede ser bool; se esperaba fecha, epoch o ISO-8601")
@@ -283,6 +301,10 @@ def generate_deterministic_uuid5(namespace: str, *parts: str) -> str:
     partes → UUID distinto. Se devuelve la forma canónica en minúsculas.
     ``namespace`` debe ser ``str`` (otro tipo lanza ``TypeError``) y no puede
     estar vacío ni ser sólo espacios (lanza ``ValueError``).
+
+    Raises:
+        TypeError: Si ``namespace`` no es un ``str``.
+        ValueError: Si ``namespace`` está vacío o es sólo espacios.
     """
     if not isinstance(namespace, str):
         raise TypeError(f"namespace debe ser str, recibido {type(namespace).__name__}")
