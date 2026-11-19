@@ -37,12 +37,34 @@ def _safe_name(name: str) -> str:
     Los separadores consecutivos no se colapsan: ``"Volatility 75 (1s) Index"``
     produce ``"volatility_75__1s__index"``.
 
+    Args:
+        name: nombre de instrumento a normalizar (cualquier cadena Unicode).
+
+    Returns:
+        identificador en minúsculas donde cada carácter no alfanumérico pasa a
+        ``_`` y se recortan los guiones bajos de los extremos; los separadores
+        consecutivos se conservan.
+
     Raises:
         TypeError: Si ``name`` no es un ``str``.
     """
     if not isinstance(name, str):
         raise TypeError(f"name debe ser str, recibido {type(name).__name__}")
     return "".join(ch.lower() if ch.isalnum() else "_" for ch in name).strip("_")
+
+
+def _reject_non_json(value: Any) -> Any:
+    """Rechaza en ``config_hash`` cualquier valor ajeno al modelo JSON.
+
+    Se usa como ``default`` de ``json.dumps`` para que tipos como ``set``,
+    ``datetime`` o ``bytes`` fallen en vez de convertirse con ``str``: la
+    representación de un ``set`` depende de ``PYTHONHASHSEED`` y produciría
+    hashes distintos entre procesos para el mismo contenido lógico.
+    """
+    raise TypeError(
+        "payload contiene un valor no serializable como JSON "
+        f"({type(value).__name__}); config_hash exige JSON canónico"
+    )
 
 
 def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
@@ -53,9 +75,24 @@ def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
     espacios, de modo que el mismo contenido lógico produce siempre el mismo
     hash: ``"sha256:" + 64 caracteres hexadecimales``.
 
+    Sólo se admiten valores representables en JSON (objetos, arrays, cadenas,
+    números, booleanos y ``null``); cualquier otro tipo lanza ``TypeError`` en
+    lugar de convertirse a texto. Los modelos pydantic ya convierten fechas y
+    tipos escalares a su forma JSON con ``model_dump(mode="json")``.
+
+    Args:
+        payload: mapping o modelo pydantic v2 cuyo JSON canónico se hashea.
+
+    Returns:
+        cadena ``"sha256:"`` seguida de 64 caracteres hexadecimales del JSON con
+        claves ordenadas y sin espacios.
+
     Raises:
         TypeError: Si ``payload`` no es un modelo pydantic (sin ``model_dump``
-            invocable) ni un ``Mapping``.
+            invocable) ni un ``Mapping``, o si contiene valores que no se pueden
+            representar como JSON (por ejemplo ``set`` o ``datetime``).
+        ValueError: Si ``payload`` contiene ``NaN`` o infinitos, que tampoco son
+            JSON válido.
     """
     model_dump = getattr(payload, "model_dump", None)
     if callable(model_dump):
@@ -73,7 +110,8 @@ def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
-        default=str,
+        default=_reject_non_json,
+        allow_nan=False,
     )
     json_bytes = canonical_json.encode("utf-8")
     return "sha256:" + hashlib.sha256(json_bytes).hexdigest()
@@ -85,7 +123,8 @@ def _validate_lttb_input(data: np.ndarray, max_points: int) -> np.ndarray:
     Comprueba, en este orden, que ``max_points`` sea un entero (``bool`` y
     tipos no enteros como ``5.0`` o ``"5"`` se rechazan con ``TypeError``; se
     acepta ``int`` y ``np.integer``), que ``max_points >= 3``, que la forma sea
-    ``(N, 2)`` y que haya al menos un punto. Las vistas o copias resultantes
+    ``(N, 2)``, que haya al menos un punto y que la columna x sea monótona no
+    decreciente (se permiten valores repetidos). Las vistas o copias resultantes
     conservan la forma original.
     """
     if isinstance(max_points, bool) or not isinstance(max_points, (int, np.integer)):
@@ -98,6 +137,8 @@ def _validate_lttb_input(data: np.ndarray, max_points: int) -> np.ndarray:
         raise ValueError(f"data debe tener forma (N, 2), recibida {arr.shape}")
     if arr.shape[0] == 0:
         raise ValueError("data no puede estar vacío (N == 0)")
+    if np.any(np.diff(arr[:, 0]) < 0.0):
+        raise ValueError("data debe tener x monótona no decreciente en la columna 0")
     return arr
 
 
@@ -187,10 +228,20 @@ def downsample_lttb(data: np.ndarray, max_points: int) -> np.ndarray:
     el último punto, y los picos sobreviven porque cada bucket aporta el punto
     de mayor desviación respecto a la tendencia local.
 
+    Args:
+        data: array ``(N, 2)`` con x monótona no decreciente en la columna 0 e y
+            en la 1.
+        max_points: número de filas de salida (mínimo 3).
+
+    Returns:
+        array ``(max_points, 2)`` de tipo ``float`` que conserva el primer y el
+        último punto, o una copia de ``data`` si ``N <= max_points``.
+
     Raises:
         TypeError: Si ``max_points`` no es un entero (un ``bool`` se rechaza).
-        ValueError: Si ``max_points < 3``, si ``data`` no tiene forma ``(N, 2)``
-            o si ``data`` está vacío (``N == 0``).
+        ValueError: Si ``max_points < 3``, si ``data`` no tiene forma ``(N, 2)``,
+            si ``data`` está vacío (``N == 0``) o si la columna x no es monótona
+            no decreciente.
     """
     arr = _validate_lttb_input(data, max_points)
     point_count = arr.shape[0]
@@ -254,6 +305,14 @@ def ensure_utc_datetime(
     o espacio y sufijo ``Z`` opcional. El resultado siempre lleva
     ``tzinfo=timezone.utc``.
 
+    Args:
+        value: ``datetime`` (ingenuo o con zona), epoch en segundos (``int``,
+            ``float`` o escalar numpy) o cadena ISO-8601.
+
+    Returns:
+        ``datetime`` consciente con ``tzinfo=UTC``; los ingenuos se interpretan
+        como UTC y los conscientes se convierten a UTC.
+
     Raises:
         TypeError: Si ``value`` es un ``bool`` o un tipo no soportado.
         ValueError: Si la cadena está vacía, si no se puede interpretar como
@@ -301,6 +360,14 @@ def generate_deterministic_uuid5(namespace: str, *parts: str) -> str:
     partes → UUID distinto. Se devuelve la forma canónica en minúsculas.
     ``namespace`` debe ser ``str`` (otro tipo lanza ``TypeError``) y no puede
     estar vacío ni ser sólo espacios (lanza ``ValueError``).
+
+    Args:
+        namespace: cadena no vacía que deriva el namespace UUID.
+        parts: componentes del nombre, unidos con ``"|"``.
+
+    Returns:
+        representación canónica en minúsculas del UUIDv5, estable entre procesos
+        para los mismos argumentos.
 
     Raises:
         TypeError: Si ``namespace`` no es un ``str``.

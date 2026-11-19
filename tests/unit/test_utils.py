@@ -113,6 +113,22 @@ def test_config_hash_rejects_non_mapping(payload: object) -> None:
         config_hash(payload)  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    "value",
+    [{"a", "b"}, datetime(2024, 1, 1, tzinfo=UTC), b"bytes", np.int64(5)],
+)
+def test_config_hash_rejects_non_json_values(value: object) -> None:
+    """Un ``set`` no puede convertirse con ``str``: su orden varía entre procesos."""
+    with pytest.raises(TypeError, match="no serializable como JSON"):
+        config_hash({"key": value})
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_config_hash_rejects_non_finite_floats(value: float) -> None:
+    with pytest.raises(ValueError):
+        config_hash({"key": value})
+
+
 # ----------------------------- downsample_lttb -----------------------------
 
 
@@ -157,9 +173,7 @@ def test_downsample_lttb_pins_triangle_area_selection() -> None:
     Un muestreo por paso fijo (``data[:: 2]``) devolvería el índice 2 y no
     contiene el valor ``1.0`` en x, así que este test lo discrimina.
     """
-    data = np.array(
-        [[0, 0], [1, 10], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]], dtype=float
-    )
+    data = np.array([[0, 0], [1, 10], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]], dtype=float)
     expected = np.array([[0.0, 0.0], [1.0, 10.0], [6.0, 0.0]])
     naive_stride_sample = data[:: data.shape[0] // 3]
     assert not np.any(naive_stride_sample[:, 0] == 1.0)
@@ -214,6 +228,21 @@ def test_downsample_lttb_rejects_wrong_shape(bad_data: np.ndarray) -> None:
 def test_downsample_lttb_rejects_empty_input() -> None:
     with pytest.raises(ValueError):
         downsample_lttb(np.empty((0, 2)), 10)
+
+
+def test_downsample_lttb_rejects_non_monotonic_x() -> None:
+    data = _make_series(100)
+    data[40, 0] = 10.0  # rompe la monotonía: 10 < 39
+    with pytest.raises(ValueError, match="monótona"):
+        downsample_lttb(data, 10)
+
+
+def test_downsample_lttb_accepts_repeated_x() -> None:
+    data = np.array([[0, 0], [0, 5], [1, 1], [2, 2]], dtype=float)
+    reduced = downsample_lttb(data, 3)
+    assert reduced.shape == (3, 2)
+    np.testing.assert_array_equal(reduced[0], data[0])
+    np.testing.assert_array_equal(reduced[-1], data[-1])
 
 
 def test_downsample_lttb_performance() -> None:
