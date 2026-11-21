@@ -1,19 +1,11 @@
-"""Punto de entrada de ``python -m quantlab``.
-
-Delega en el dashboard FastAPI cuando ``quantlab.dashboard.app`` está
-implementado. Mientras ese módulo no exista, informa que aún no hay dashboard.
-"""
+"""Punto de entrada de ``python -m quantlab`` (T032/T035)."""
 
 from __future__ import annotations
 
 
 def main() -> None:
-    """Arranca el dashboard si existe; si no, lo informa."""
-    try:
-        from quantlab.dashboard.app import main as dashboard_main
-    except ImportError:
-        print("dashboard no implementado todavía")
-        return
+    """Arranca el dashboard FastAPI con la configuración de entorno."""
+    from quantlab.dashboard.app import main as dashboard_main
 
     dashboard_main()
 

@@ -35,8 +35,12 @@ packages = ["src/quantlab"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m \"not performance\""
 asyncio_mode = "auto"
+markers = [
+    "live: pruebas opt-in contra servicios externos (Deriv)",
+    "performance: benchmarks locales excluidos del CI rápido",
+]
 
 [tool.ruff]
 line-length = 100

@@ -4,8 +4,8 @@
   "generated_at": "2026-11-16T12:00:00Z",
   "app_version": "0.1.0",
   "config_version": "1.0.0",
-  "config_hash": "sha256:a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef01",
-  "data_version": "sha256:1a2b3c4d5e6f7890123456789abcdef0123456789abcdef0123456789abcdef01",
+  "config_hash": "sha256:a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4",
+  "data_version": "sha256:1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d",
   "instrument": {
     "symbol": "BOOM1000",
     "display_name": "Boom 1000",
@@ -126,7 +126,7 @@
       },
       "zones": [
         {
-          "zone_id": "sha256:1a2b3c4d5e6f7890123456789abcdef0123456789abcdef0123456789abcdef01",
+          "zone_id": "sha256:1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d",
           "symbol": "BOOM1000",
           "timeframe": "5min",
           "zone_type": "support",

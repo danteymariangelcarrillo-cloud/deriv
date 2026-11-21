@@ -25,6 +25,7 @@ __all__ = [
     "downsample_lttb",
     "ensure_utc_datetime",
     "generate_deterministic_uuid5",
+    "hash_payload",
 ]
 
 
@@ -67,7 +68,7 @@ def _reject_non_json(value: Any) -> Any:
     )
 
 
-def config_hash(payload: Mapping[str, Any] | BaseModel) -> str:
+def hash_payload(payload: Mapping[str, Any] | BaseModel) -> str:
     """Devuelve el SHA-256 del JSON canónico de ``payload``.
 
     Acepta un mapping o un modelo pydantic v2 (se serializa con
@@ -380,3 +381,7 @@ def generate_deterministic_uuid5(namespace: str, *parts: str) -> str:
     ns_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, f"quantlab:{namespace}")
     name = "|".join(str(part) for part in parts)
     return str(uuid.uuid5(ns_uuid, name))
+
+
+#: Alias retrocompatible (T042): el nombre canónico es ``hash_payload``.
+config_hash = hash_payload
